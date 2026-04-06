@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Terminal | Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <style>
+        body { background-color: #0e1116; color: #ffffff; font-family: 'Inter', sans-serif; }
+        .card-bg { background: #1c2128; border: 1px solid #30363d; border-radius: 12px; }
+        .section { display: none; padding: 20px; min-height: 100vh; }
+        .section-active { display: block; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; }
+        .nav-btn { background: #1c2128; border: 1px solid #30363d; padding: 15px; text-align: center; border-radius: 12px; cursor: pointer; }
+        input { outline: none; }
+    </style>
+</head>
+<body>
+    <div id="auth-container" class="flex items-center justify-center min-h-screen p-6">
+        <div class="card-bg p-8 w-full max-w-md">
+            <h1 class="text-2xl font-black text-yellow-500 mb-6 italic">ADMIN LOGIN</h1>
+            <input type="email" id="admin-email" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-4" placeholder="Admin Email">
+            <input type="password" id="admin-password" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-6" placeholder="Password">
+            <button onclick="adminLogin()" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase">Access Terminal</button>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden">
+        <div id="admin-dashboard" class="section section-active">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-black text-yellow-500 italic">ADMIN CONTROL</h1>
+                <button onclick="auth.signOut(); location.reload();" class="text-xs bg-red-600 px-3 py-1 rounded font-bold uppercase">Logout</button>
+            </div>
+            
+            <!-- Analytics Stats -->
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="card-bg p-3 text-center">
+                    <p class="text-[8px] text-gray-500 uppercase">Total Users</p>
+                    <p id="stat-users" class="font-bold text-sm">0</p>
+                </div>
+                <div class="card-bg p-3 text-center">
+                    <p class="text-[8px] text-gray-500 uppercase">Active Trades</p>
+                    <p id="stat-trades" class="font-bold text-sm text-green-500">0</p>
+                </div>
+                <div class="card-bg p-3 text-center">
+                    <p class="text-[8px] text-gray-500 uppercase">Pending Dep.</p>
+                    <p id="stat-deposits" class="font-bold text-sm text-yellow-500">0</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <div onclick="switchPage('admin-deposits')" class="nav-btn border-b-2 border-blue-500">
+                    <i class="fas fa-wallet text-xl mb-2 text-blue-500"></i><p class="text-[10px] font-bold">DEPOSITS</p>
+                </div>
+                <div onclick="switchPage('admin-withdrawals')" class="nav-btn border-b-2 border-red-500">
+                    <i class="fas fa-hand-holding-usd text-xl mb-2 text-red-500"></i><p class="text-[10px] font-bold">WITHDRAWALS</p>
+                </div>
+                <div onclick="switchPage('admin-transfers')" class="nav-btn border-b-2 border-purple-500">
+                    <i class="fas fa-bolt text-xl mb-2 text-purple-500"></i><p class="text-[10px] font-bold">WALLET ACTIVATION</p>
+                </div>
+                <div onclick="switchPage('coupons-admin')" class="nav-btn border-b-2 border-yellow-500">
+                    <i class="fas fa-ticket-alt text-xl mb-2 text-yellow-500"></i><p class="text-[10px] font-bold">COUPONS</p>
+                </div>
+                <div onclick="switchPage('admin-users')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-green-500">
+                    <i class="fas fa-users text-xl mb-2 text-green-500"></i><p class="text-[10px] font-bold">USERS</p>
+                </div>
+                <div onclick="switchPage('admin-support')" class="nav-btn border-b-2 border-orange-500 col-span-2">
+                    <i class="fas fa-headset text-xl mb-2 text-orange-500"></i><p class="text-[10px] font-bold">SUPPORT INBOX</p>
+                </div>
+                <div onclick="switchPage('platform-settings')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-gray-500 col-span-2">
+                    <i class="fas fa-cogs text-xl mb-2 text-gray-400"></i><p class="text-[10px] font-bold">PLATFORM SETTINGS</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="admin-deposits" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6">Deposit Requests</h2>
+            <div id="admin-deposit-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-withdrawals" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6">Withdrawal Requests</h2>
+            <div id="admin-withdrawal-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-transfers" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6 italic text-purple-500">Wallet Activation Requests</h2>
+            <p class="text-[10px] text-gray-500 mb-4 uppercase font-bold tracking-widest">Verify UTR for ₹5,850 Fee</p>
+            <div id="admin-transfer-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-support" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6 italic text-orange-500">Support Tickets</h2>
+            <div id="admin-ticket-list" class="space-y-4"></div>
+        </div>
+
+        <div id="coupons-admin" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6">Coupon Manager</h2>
+            <div id="admin-coupon-content"></div>
+        </div>
+
+        <div id="admin-users" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6">User Management</h2>
+            <!-- Search Bar Added -->
+            <div class="mb-6">
+                <input type="text" id="user-search" oninput="loadAdminData(this.value)" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-sm" placeholder="Search by name, email or ID...">
+            </div>
+            <div id="admin-user-list-content" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-user-manager" class="section">
+            <button onclick="switchPage('admin-users')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <div id="managed-user-info" class="card-bg p-6 mb-6"></div>
+            <div class="card-bg p-4 mb-6">
+                <h3 class="text-xs font-bold mb-4">ADJUST BALANCE</h3>
+                <div class="flex gap-2">
+                    <input type="number" id="admin-adj-val" class="flex-1 bg-black p-3 rounded" placeholder="Amount">
+                    <button onclick="adminAdjustUserBalance(1)" class="bg-green-600 px-4 rounded font-bold">+</button>
+                    <button onclick="adminAdjustUserBalance(-1)" class="bg-red-600 px-4 rounded font-bold">-</button>
+                </div>
+            </div>
+            <!-- Advanced Controls Added -->
+            <div class="card-bg p-4 mb-6">
+                <h3 class="text-xs font-bold mb-4 uppercase text-gray-500">Security & Status</h3>
+                <div class="grid grid-cols-2 gap-2" id="user-status-controls">
+                    <!-- Buttons injected via JS -->
+                </div>
+            </div>
+
+            <div id="managed-user-trades" class="space-y-4"></div>
+            <button onclick="adminOpenTradeForUser()" class="w-full bg-yellow-500 text-black py-4 rounded mt-6 font-bold">FORCE OPEN TRADE</button>
+        </div>
+
+        <!-- PLATFORM SETTINGS -->
+        <div id="platform-settings" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <h2 class="text-xl font-bold mb-6">Global Settings</h2>
+            
+            <div class="card-bg p-6 mb-6">
+                <h3 class="text-xs font-bold text-yellow-500 uppercase mb-4">Maintenance Mode</h3>
+                <div class="flex justify-between items-center">
+                    <p class="text-xs text-gray-400">Lock client portal for all users</p>
+                    <input type="checkbox" id="m-mode-toggle" onchange="updateGlobalSettings('maintenanceMode', this.checked)">
+                </div>
+            </div>
+
+            <div class="card-bg p-6 mb-6">
+                <h3 class="text-xs font-bold text-yellow-500 uppercase mb-4">Platform Announcement</h3>
+                <textarea id="global-announcement" class="w-full bg-black p-4 rounded-xl text-xs mb-4" placeholder="Type message for all users..."></textarea>
+                <button onclick="updateGlobalSettings('announcement', document.getElementById('global-announcement').value)" class="bg-yellow-500 text-black px-6 py-2 rounded font-bold text-xs">UPDATE ALERT</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQhAPr84ML-TD5hMV6vb3f_k1ywJnOH78",
+            authDomain: "the-forex-room.firebaseapp.com",
+            projectId: "the-forex-room",
+            storageBucket: "the-forex-room.firebasestorage.app",
+            messagingSenderId: "880145153069",
+            appId: "1:880145153069:web:ac4ce3d2e5b21dfa860ca4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const ADMIN_UID = "t0XAOmRtUNU3hj1z1GjWK2kE7ei1";
+        let managedUserId = null;
+
+        function adminLogin() {
+            const email = document.getElementById('admin-email').value;
+            const pass = document.getElementById('admin-password').value;
+            auth.signInWithEmailAndPassword(email, pass).catch(e => alert(e.message));
+        }
+
+        auth.onAuthStateChanged(user => {
+            if(user && user.uid === ADMIN_UID) {
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                loadAdminData();
+                loadAdminDeposits();
+                loadAdminWithdrawals();
+                loadAdminCoupons();
+                loadAdminTransfers();
+                loadAdminSupport();
+                loadPlatformStats();
+                loadGlobalSettingsUI();
+            } else if (user) {
+                alert("Access Denied: Not an Admin Account");
+                auth.signOut();
+            }
+        });
+
+        function loadPlatformStats() {
+            db.collection('users').onSnapshot(snap => document.getElementById('stat-users').innerText = snap.size - 1);
+            // Total Users Balance in INR
+            db.collection('trades').where('status', '==', 'OPEN').onSnapshot(snap => document.getElementById('stat-trades').innerText = snap.size);
+            db.collection('transactions').where('status', '==', 'AWAITING_APPROVAL').onSnapshot(snap => document.getElementById('stat-deposits').innerText = snap.size);
+        }
+
+        function loadGlobalSettingsUI() {
+            db.collection('settings').doc('global').onSnapshot(doc => {
+                const s = doc.data();
+                if(!s) return;
+                document.getElementById('m-mode-toggle').checked = s.maintenanceMode;
+                document.getElementById('global-announcement').value = s.announcement || "";
+            });
+        }
+
+        async function updateGlobalSettings(field, value) {
+            await db.collection('settings').doc('global').set({ [field]: value }, { merge: true });
+            alert("Platform updated successfully.");
+        }
+
+        function switchPage(p) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('section-active'));
+            document.getElementById(p).classList.add('section-active');
+        }
+
+        function loadAdminData(filter = "") {
+            db.collection('users').onSnapshot(snap => {
+                const list = document.getElementById('admin-user-list-content');
+                list.innerHTML = '';
+                snap.forEach(doc => {
+                    const u = doc.data();
+                    if(u.uid === ADMIN_UID) return;
+                    // Filter Logic
+                    if(filter && !u.name.toLowerCase().includes(filter.toLowerCase()) && !u.email.toLowerCase().includes(filter.toLowerCase()) && !u.accountNumber.toString().includes(filter)) return;
+
+                    list.innerHTML += `
+                        <div onclick="openUserManager('${u.uid}')" class="p-4 card-bg border-l-4 border-green-500 flex justify-between items-center cursor-pointer">
+                            <div><p class="font-bold text-sm">${u.name}</p><p class="text-[10px] text-gray-500">${u.email}</p></div>
+                            <p class="font-black text-yellow-500">₹${u.wallet.equity.toFixed(2)}</p>
+                        </div>`;
+                });
+            });
+        }
+
+        async function openUserManager(uid) {
+            managedUserId = uid;
+            switchPage('admin-user-manager');
+            db.collection('users').doc(uid).onSnapshot(doc => {
+                const u = doc.data();
+                document.getElementById('managed-user-info').innerHTML = `
+                    <h2 class="font-black text-lg text-yellow-500">${u.name}</h2>
+                    <p class="text-xs text-gray-500">${u.email} | ID: ${u.accountNumber}</p>
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="card-bg p-3 border border-gray-800">
+                            <p class="text-[8px] text-gray-500 uppercase">Main Balance</p><p class="font-bold text-sm">₹${u.wallet.equity.toFixed(2)}</p>
+                        </div>
+                        <div class="card-bg p-3 border border-gray-800">
+                            <p class="text-[8px] text-gray-500 uppercase">Withdraw Wallet</p><p class="font-bold text-sm text-purple-500">₹${(u.wallet.withdrawalWallet || 0).toFixed(2)}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2"><span class="badge ${u.kycStatus==='Verified'?'bg-green-600':'bg-red-600'}">${u.kycStatus || 'Unverified'}</span></div>
+                `;
+                
+                // Status Buttons UI
+                document.getElementById('user-status-controls').innerHTML = `
+                    <button onclick="updateUserStatus('${u.uid}', 'withdrawLocked', ${!u.withdrawLocked})" class="p-3 rounded-lg text-[10px] font-bold uppercase ${u.withdrawLocked ? 'bg-red-600' : 'bg-gray-700'}">
+                        ${u.withdrawLocked ? 'Unlock Withdraw' : 'Lock Withdraw'}
+                    </button>
+                    <button onclick="updateUserStatus('${u.uid}', 'kycStatus', 'Verified')" class="p-3 rounded-lg bg-blue-600 text-[10px] font-bold uppercase">Verify KYC</button>
+                    <button onclick="updateUserStatus('${u.uid}', 'accountBanned', ${!u.accountBanned})" class="p-3 rounded-lg text-[10px] font-bold uppercase ${u.accountBanned ? 'bg-green-600' : 'bg-red-900/40 text-red-500'} col-span-2 mt-2">
+                        ${u.accountBanned ? 'Unban User' : 'Ban Account'}
+                    </button>
+                `;
+            });
+            
+            // Load Trades
+            db.collection('trades').where('userId', '==', uid).where('status', '==', 'OPEN').onSnapshot(snap => {
+                const list = document.getElementById('managed-user-trades');
+                list.innerHTML = snap.empty ? '<p class="text-center text-gray-700 text-xs">No Open Trades</p>' : '';
+                snap.forEach(doc => {
+                    const t = doc.data();
+                    list.innerHTML += `
+                        <div class="p-4 card-bg border-l-4 ${t.type==='BUY'?'border-green-500':'border-red-500'}">
+                            <div class="flex justify-between items-center">
+                                <p class="text-xs font-bold">${t.symbol} [${t.type}]</p>
+                                <button onclick="adminCloseTrade('${doc.id}')" class="bg-red-600 text-[8px] px-2 py-1 rounded">CLOSE</button>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                                <input type="number" id="pnl-${doc.id}" placeholder="Manual PnL" class="flex-1 bg-black p-1 text-xs rounded border border-gray-700">
+                                <button onclick="adminUpdatePnL('${doc.id}')" class="bg-yellow-500 text-black text-[9px] px-2 rounded">SET</button>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        async function updateUserStatus(uid, field, value) {
+            await db.collection('users').doc(uid).update({ [field]: value });
+            alert("User settings updated.");
+        }
+
+        async function adminAdjustUserBalance(dir) {
+            const val = parseFloat(document.getElementById('admin-adj-val').value);
+            if(!val) return;
+            const ref = db.collection('users').doc(managedUserId);
+            await db.runTransaction(async (t) => {
+                const doc = await t.get(ref);
+                t.update(ref, { "wallet.equity": doc.data().wallet.equity + (val * dir) });
+            });
+            document.getElementById('admin-adj-val').value = '';
+        }
+
+        async function adminUpdatePnL(tid) {
+            const val = parseFloat(document.getElementById(`pnl-${tid}`).value);
+            await db.collection('trades').doc(tid).update({ manualPnL: val });
+        }
+
+        async function adminCloseTrade(tid) {
+            if(!confirm("Close this trade?")) return;
+            await db.collection('trades').doc(tid).update({ status: 'CLOSED', pnl: 0 });
+        }
+
+        function loadAdminDeposits() {
+            db.collection('transactions').where('type', '==', 'DEPOSIT_PENDING').onSnapshot(snap => {
+                const list = document.getElementById('admin-deposit-list');
+                list.innerHTML = snap.empty ? '<p class="text-xs text-gray-600 italic">No requests</p>' : '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const color = d.status === 'COMPLETED' ? 'border-green-500' : (d.status === 'REJECTED' ? 'border-red-500' : 'border-blue-500');
+                    list.innerHTML += `
+                    <div class="p-4 card-bg border-l-4 ${color}">
+                        <div class="flex justify-between">
+                            <p class="font-bold text-xs">₹${d.toPay} [${d.method}]</p>
+                            <span class="badge">${d.status}</span>
+                        </div>
+                        <p class="text-[10px] text-yellow-500 font-mono mt-2">UTR: ${d.utr || 'N/A'}</p>
+                        <div class="flex gap-2 mt-4">
+                            ${d.status !== 'COMPLETED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'COMPLETED', 'DEPOSIT')" class="flex-1 py-1 bg-green-600 rounded text-[9px] font-bold">APPROVE</button>` : ''}
+                            ${d.status !== 'REJECTED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'REJECTED', 'DEPOSIT')" class="flex-1 py-1 bg-red-600 rounded text-[9px] font-bold">REJECT</button>` : ''}
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        function loadAdminWithdrawals() {
+            db.collection('transactions').where('type', '==', 'WITHDRAW_REQUEST').onSnapshot(snap => {
+                const list = document.getElementById('admin-withdrawal-list');
+                list.innerHTML = snap.empty ? '<p class="text-xs text-gray-600 italic">No requests</p>' : '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const color = d.status === 'COMPLETED' ? 'border-green-500' : (d.status === 'REJECTED' ? 'border-red-500' : 'border-blue-500');
+                    const info = d.details ? (d.method === 'upi' ? d.details.upiId : (d.method === 'bank' ? d.details.acc : d.details.address)) : 'N/A';
+                    list.innerHTML += `
+                    <div class="p-4 card-bg border-l-4 ${color}">
+                        <p class="font-bold text-xs">₹${d.amount} [${d.method}]</p>
+                        <p class="text-[9px] text-gray-500 truncate mt-1">${info}</p>
+                        <div class="flex gap-2 mt-4">
+                            ${d.status !== 'COMPLETED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'COMPLETED', 'WITHDRAW')" class="flex-1 py-1 bg-green-600 rounded text-[9px] font-bold">APPROVE</button>` : ''}
+                            ${d.status !== 'REJECTED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'REJECTED', 'WITHDRAW')" class="flex-1 py-1 bg-red-600 rounded text-[9px] font-bold">REJECT</button>` : ''}
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        function loadAdminTransfers() {
+            db.collection('transactions').where('type', '==', 'WALLET_TRANSFER_REQUEST').onSnapshot(snap => {
+                const list = document.getElementById('admin-transfer-list');
+                list.innerHTML = snap.empty ? '<p class="text-xs text-gray-600 italic">No pending transfers</p>' : '';
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    const color = d.status === 'COMPLETED' ? 'border-green-500' : (d.status === 'REJECTED' ? 'border-red-500' : 'border-blue-500');
+                    list.innerHTML += `
+                    <div class="p-4 card-bg border-l-4 ${color}">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs font-bold">Transfer: ₹${d.amount}</p>
+                            <span class="text-[9px] bg-purple-500/10 text-purple-400 px-2 rounded">Fee: ₹5850</span>
+                        </div>
+                        <p class="text-[10px] text-yellow-500 font-mono font-bold mb-2 uppercase">UTR: ${d.utr || 'NO UTR'}</p>
+                        <p class="text-[9px] text-gray-500 mb-4">User UID: ${d.userId}</p>
+                        <div class="flex gap-2">
+                            ${d.status !== 'COMPLETED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'COMPLETED', 'TRANSFER')" class="flex-1 py-2 bg-purple-600 rounded text-[10px] font-bold">APPROVE</button>` : ''}
+                            ${d.status !== 'REJECTED' ? `<button onclick="handleTrxStatus('${doc.id}', '${d.userId}', ${d.amount}, '${d.status}', 'REJECTED', 'TRANSFER')" class="py-2 px-4 bg-red-900/20 text-red-500 rounded text-[10px] font-bold">REJECT</button>` : ''}
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        async function handleTrxStatus(trxId, userId, amount, currentStatus, targetStatus, type) {
+            if(!confirm(`Change status to ${targetStatus}?`)) return;
+            const userRef = db.collection('users').doc(userId);
+            try {
+                await db.runTransaction(async (t) => {
+                    const doc = await t.get(userRef);
+                    const userData = doc.data();
+                    let wallet = userData.wallet;
+
+                    if(type === 'DEPOSIT') {
+                        if(targetStatus === 'COMPLETED') {
+                            wallet.equity += amount;
+                            // REFERRAL COMMISSION (10%)
+                            if(userData.referredBy) {
+                                const uplineSnap = await t.get(db.collection('users').where('myReferralCode', '==', userData.referredBy).limit(1));
+                                if(!uplineSnap.empty) {
+                                    const uplineDoc = uplineSnap.docs[0];
+                                    const commission = amount * 0.10;
+                                    t.update(uplineDoc.ref, { "wallet.equity": uplineDoc.data().wallet.equity + commission });
+                                    // Log Commission Transaction
+                                    db.collection('transactions').add({
+                                        userId: uplineDoc.id, type: 'REFERRAL_COMMISSION', amount: commission,
+                                        fromUser: userData.name, status: 'COMPLETED', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                    });
+                                }
+                            }
+                        }
+                        if(currentStatus === 'COMPLETED' && targetStatus === 'REJECTED') wallet.equity -= amount;
+                    } 
+                    else if(type === 'WITHDRAW') {
+                        if(targetStatus === 'COMPLETED') wallet.withdrawalWallet -= amount;
+                        if(currentStatus === 'COMPLETED' && targetStatus === 'REJECTED') wallet.withdrawalWallet += amount;
+                    }
+                    else if(type === 'TRANSFER') {
+                        if(targetStatus === 'COMPLETED') {
+                            wallet.equity -= amount;
+                            wallet.withdrawalWallet = (wallet.withdrawalWallet || 0) + amount;
+                            
+                            // If this was an activation (fee paid), activate for 365 days
+                            if(currentStatus === 'AWAITING_APPROVAL') {
+                                userData.walletActivation = {
+                                    status: 'ACTIVE',
+                                    expiry: Date.now() + (365 * 24 * 60 * 60 * 1000),
+                                    lastPaid: Date.now()
+                                };
+                            }
+                        }
+                        if(currentStatus === 'COMPLETED' && targetStatus === 'REJECTED') {
+                            wallet.equity += amount;
+                            wallet.withdrawalWallet -= amount;
+                        }
+                    }
+
+                    t.update(userRef, { wallet: wallet, walletActivation: userData.walletActivation || null });
+                    t.update(db.collection('transactions').doc(trxId), { status: targetStatus });
+                });
+                alert("Transaction Updated Successfully");
+            } catch(e) { alert("Error: " + e.message); }
+        }
+
+        function loadAdminCoupons() {
+            db.collection('coupons').onSnapshot(snap => {
+                const container = document.getElementById('admin-coupon-content');
+                container.innerHTML = `
+                    <div class="card-bg p-4 mb-4">
+                        <input type="text" id="cp-code" class="w-full bg-black border border-gray-700 p-2 rounded mb-2" placeholder="Code">
+                        <input type="number" id="cp-val" class="w-full bg-black border border-gray-700 p-2 rounded mb-2" placeholder="Value (INR)">
+                        <button onclick="addCoupon()" class="w-full bg-yellow-500 text-black py-2 rounded font-bold">ADD COUPON</button>
+                    </div>
+                    <div id="cp-list" class="space-y-2"></div>
+                `;
+                const list = document.getElementById('cp-list');
+                snap.forEach(doc => {
+                    const c = doc.data();
+                    list.innerHTML += `
+                        <div class="p-3 card-bg flex justify-between items-center">
+                            <div><p class="font-bold">${c.code}</p><p class="text-[10px] text-green-500">Value: ₹${c.value}</p></div>
+                            <div class="flex gap-2">
+                                <button onclick="toggleCoupon('${doc.id}', ${!c.active})" class="p-1 px-2 rounded text-[8px] ${c.active?'bg-green-600':'bg-gray-700'}">${c.active?'ON':'OFF'}</button>
+                                <button onclick="db.collection('coupons').doc('${doc.id}').delete()" class="p-1 px-2 bg-red-600 rounded text-[8px]"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        async function addCoupon() {
+            const code = document.getElementById('cp-code').value.toUpperCase();
+            const val = parseFloat(document.getElementById('cp-val').value);
+            if(!code || !val) return;
+            await db.collection('coupons').add({ code, value: val, active: true });
+        }
+
+        async function toggleCoupon(id, status) {
+            await db.collection('coupons').doc(id).update({ active: status });
+        }
+
+        function loadAdminSupport() {
+            db.collection('support_tickets').onSnapshot(snap => {
+                const list = document.getElementById('admin-ticket-list');
+                list.innerHTML = snap.empty ? '<p class="text-xs text-gray-600 italic">No tickets found</p>' : '';
+                
+                let tickets = [];
+                snap.forEach(doc => tickets.push({id: doc.id, ...doc.data()}));
+                // Robust sort for Admin View
+                tickets.sort((a, b) => {
+                    const timeA = a.timestamp ? a.timestamp.toMillis() : Date.now();
+                    const timeB = b.timestamp ? b.timestamp.toMillis() : Date.now();
+                    return timeB - timeA;
+                });
+
+                let html = '';
+                tickets.forEach(t => {
+                    let chatHtml = (t.messages || []).map(m => `
+                        <div class="mb-2 ${m.role === 'admin' ? 'text-right' : 'text-left'}">
+                            <p class="text-[8px] font-bold ${m.role === 'admin' ? 'text-blue-400' : 'text-yellow-500'} uppercase">${m.role === 'admin' ? 'You' : t.userName}</p>
+                            <p class="text-[11px] text-gray-300 bg-black/40 inline-block p-2 rounded-lg border border-gray-800">${m.text}</p>
+                        </div>
+                    `).join('');
+
+                    html += `
+                    <div class="p-4 card-bg border-l-4 ${t.status === 'OPEN' ? 'border-yellow-500' : 'border-green-500'} mb-3">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs font-bold text-yellow-500">${t.userName}</p>
+                            <div class="flex gap-2 items-center">
+                                <span class="badge">${t.status}</span>
+                                ${t.status === 'OPEN' ? `<button onclick="resolveTicket('${t.id}')" class="text-[8px] bg-green-900/30 text-green-500 px-2 py-1 rounded font-bold uppercase">Resolve</button>` : ''}
+                            </div>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto mb-4 no-scrollbar border-y border-gray-800/50 py-3" id="admin-chat-box-${t.id}">
+                            ${chatHtml}
+                        </div>
+                        ${t.status === 'OPEN' ? `
+                        <div class="flex gap-2">
+                            <input type="text" id="reply-${t.id}" placeholder="Type reply..." class="flex-1 bg-black p-2 rounded text-[10px] border border-gray-700">
+                            <button onclick="replyTicket('${t.id}')" class="bg-blue-600 px-3 py-1 rounded text-[10px] font-bold">REPLY</button>
+                        </div>` : ''}
+                    </div>`;
+                });
+                list.innerHTML = html;
+
+                // Admin auto-scroll to follow latest replies
+                setTimeout(() => {
+                    tickets.forEach(t => {
+                        const box = document.getElementById(`admin-chat-box-${t.id}`);
+                        if(box) box.scrollTop = box.scrollHeight;
+                    });
+                }, 100);
+            });
+        }
+
+        async function replyTicket(tid) {
+            const reply = document.getElementById('reply-'+tid).value;
+            if(!reply) return;
+            await db.collection('support_tickets').doc(tid).update({ 
+                messages: firebase.firestore.FieldValue.arrayUnion({ role: 'admin', text: reply, time: Date.now() }),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('reply-'+tid).value = '';
+        }
+
+        async function resolveTicket(tid) {
+            if(!confirm("Are you sure you want to mark this ticket as RESOLVED?")) return;
+            await db.collection('support_tickets').doc(tid).update({ status: 'RESOLVED' });
+            showToast("Ticket marked as Resolved", "success");
+        }
+
+        async function adminOpenTradeForUser() {
+            const symbol = prompt("Symbol (BTCUSD, XAUUSD):");
+            const type = prompt("BUY or SELL:");
+            const lot = prompt("Lot (e.g. 0.10):");
+            const price = prompt("Price:");
+            if(!symbol || !type || !lot || !price) return;
+            await db.collection('trades').add({
+                userId: managedUserId, symbol: symbol.toUpperCase(), type: type.toUpperCase(),
+                lot: parseFloat(lot), entryPrice: parseFloat(price), status: 'OPEN',
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        }
+    </script>
+</body>
+</html>

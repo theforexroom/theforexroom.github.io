@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Forex Room | Pro Elite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+    <style>
+        body { background-color: #0e1116; color: #ffffff; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        .nav-active { color: #f59e0b !important; }
+        .card-bg { background: #1c2128; border: 1px solid #30363d; border-radius: 12px; }
+        .bottom-nav { background: #161b22; border-top: 1px solid #30363d; z-index: 100; }
+        .section { display: none; padding: 15px; padding-bottom: 100px; min-height: 100vh; }
+        .section-active { display: block; }
+        .filter-btn { padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: bold; border: 1px solid #30363d; color: #8b949e; white-space: nowrap; }
+        .filter-active { background: #f59e0b; color: #000; border-color: #f59e0b; }
+        .profit-pos { color: #22c55e; }
+        .profit-neg { color: #ef4444; }
+        .badge { padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        /* Custom Animations for Toasts */
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast-animate { animation: slideIn 0.3s ease-out forwards; }
+        
+        /* Custom Prompt Styling */
+        #prompt-modal input::placeholder { color: #4b5563; }
+        .modal-blur { backdrop-filter: blur(8px); }
+        
+        input { outline: none; }
+    </style>
+</head>
+<body>
+
+    <div id="auth-container" class="flex items-center justify-center min-h-screen p-6 bg-[#0e1116]">
+        <div class="w-full max-w-md">
+            <div class="text-center mb-10">
+                <h1 class="text-3xl font-black text-yellow-500 tracking-tighter italic">THE FOREX ROOM</h1>
+                <p class="text-gray-500 text-sm mt-2">Global Multi-Asset Trading Terminal</p>
+            </div>
+            <div class="card-bg p-8 shadow-2xl">
+                <h2 id="auth-title" class="text-xl font-bold mb-6">Sign In</h2>
+                <div id="register-fields" class="hidden">
+                    <input type="text" id="user-name" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Full Name">
+                    <input type="text" id="reg-referral-code" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Referral Code (Optional)">
+                </div>
+                <input type="email" id="user-email" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
+                <input type="password" id="user-password" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-6 text-sm" placeholder="Password">
+                <button onclick="handleAuth()" id="auth-btn" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase tracking-widest active:scale-95 transition">Sign In</button>
+                <p class="text-center mt-6 text-gray-500 text-xs">
+                    <span id="auth-switch-text">New to the platform?</span> 
+                    <a href="javascript:void(0)" onclick="toggleAuth()" id="auth-toggle-btn" class="text-yellow-500 font-bold ml-1">Create Account</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden">
+        
+        <header class="p-4 flex justify-between items-center border-b border-gray-800 sticky top-0 bg-[#0e1116] z-50">
+            <div>
+                <p class="text-[9px] uppercase font-bold text-gray-500 tracking-widest">Real Account</p>
+                <p id="display-acc-no" class="font-bold text-sm text-yellow-500">ID: --------</p>
+            </div>
+            <div class="flex gap-4">
+                <i class="fas fa-search text-gray-400"></i>
+                <i class="fas fa-bell text-gray-400"></i>
+            </div>
+        </header>
+
+        <div id="home" class="section">
+            <div id="global-alert" class="hidden mb-4 p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-xl flex items-center gap-3">
+                <i class="fas fa-bullhorn text-yellow-500 animate-bounce"></i>
+                <p id="alert-text" class="text-[10px] font-bold text-yellow-500 uppercase"></p>
+            </div>
+
+            <div class="card-bg p-6 mb-6 bg-gradient-to-br from-[#1c2128] to-[#0d1117]">
+                <p class="text-gray-400 text-[10px] uppercase font-bold mb-1">Total Equity</p>
+                <h1 id="user-equity" class="text-4xl font-black mb-6">₹0.00</h1>
+                <div class="flex gap-2">
+                    <button onclick="switchPage('deposit-step-1')" id="deposit-btn" class="flex-1 bg-yellow-500 text-black text-[11px] font-bold py-3 rounded-lg uppercase">Deposit</button>
+                    <button onclick="switchPage('withdraw-step-1')" id="withdraw-btn" class="flex-1 bg-gray-800 text-white text-[11px] font-bold py-3 rounded-lg uppercase">Withdraw</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-6 text-center">
+                <div onclick="switchPage('transfer-funds-page')" class="card-bg p-3 cursor-pointer"><p class="text-[8px] text-gray-500 uppercase">Transfer</p><i class="fas fa-exchange-alt text-yellow-500 text-xs"></i></div>
+                <div class="card-bg p-3"><p class="text-[8px] text-gray-500 uppercase">W-Wallet</p><p id="withdraw-wallet-display" class="text-white text-[10px] font-bold">₹0.00</p></div>
+                <div class="card-bg p-3"><p class="text-[8px] text-gray-500 uppercase">V-Limit</p><p class="text-green-500 text-[10px] font-bold">Max</p></div>
+            </div>
+
+            <h3 class="text-xs font-bold text-gray-500 uppercase mb-3 italic">Market Insights</h3>
+            <div class="card-bg p-0 overflow-hidden mb-6 h-64">
+                <!-- TradingView News Widget -->
+                <iframe src="https://www.tradingview-widget.com/embed-widget/timeline/?colorTheme=dark&isTransparent=true&displayMode=regular&width=100%&height=100%&locale=en" frameborder="0" width="100%" height="100%"></iframe>
+            </div>
+
+            <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Watchlist</h3>
+            <div id="quick-market" class="space-y-3"></div>
+        </div>
+
+        <div id="market" class="section">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Markets</h2>
+                <span class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded font-bold uppercase">All Global Pairs</span>
+            </div>
+            <!-- Global Search Bar -->
+            <div class="mb-6 relative">
+                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                <input type="text" id="market-search" oninput="searchMarket(this.value)" class="w-full bg-black border border-gray-800 p-4 pl-10 rounded-2xl text-sm focus:border-yellow-500 transition-all" placeholder="Search any symbol (e.g. AAPL, BTC, USDINR)...">
+            </div>
+            <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                <button onclick="setFilter('all', this)" class="filter-btn filter-active">All</button>
+                <button onclick="setFilter('crypto', this)" class="filter-btn">Crypto</button>
+                <button onclick="setFilter('forex', this)" class="filter-btn">Forex</button>
+                <button onclick="setFilter('indices', this)" class="filter-btn">Indices</button>
+                <button onclick="setFilter('metals', this)" class="filter-btn">Metals</button>
+                <button onclick="setFilter('commodities', this)" class="filter-btn">Commodities</button>
+                <button onclick="setFilter('etf', this)" class="filter-btn">ETF</button>
+            </div>
+            <div id="full-market-list" class="space-y-2"></div>
+        </div>
+
+        <div id="history" class="section">
+            <h2 class="text-xl font-bold mb-4">History</h2>
+            <div class="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+                <button onclick="filterUserHistory('trades')" class="filter-btn h-tab-btn filter-active">Trades</button>
+                <button onclick="filterUserHistory('deposits')" class="filter-btn h-tab-btn">Deposits</button>
+                <button onclick="filterUserHistory('withdrawals')" class="filter-btn h-tab-btn">Withdrawals</button>
+            </div>
+            <div id="history-list-content" class="space-y-3"></div>
+        </div>
+
+        <div id="support" class="section">
+            <h2 class="text-xl font-bold mb-4">Support Center</h2>
+            <div class="card-bg p-6 mb-6">
+                <p class="text-xs text-gray-400 mb-4 leading-relaxed">Having issues with deposit or trades? Send a message to our 24/7 technical team.</p>
+                <textarea id="support-msg" class="w-full bg-black border border-gray-800 p-4 rounded-xl text-sm mb-4 h-32" placeholder="Describe your issue here..."></textarea>
+                <button onclick="sendSupportTicket()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-bold uppercase text-xs tracking-widest">Submit Ticket</button>
+            </div>
+            
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-4">Your Recent Tickets</h3>
+            <div id="my-tickets" class="space-y-3">
+                <p class="text-center text-gray-700 text-[10px] mt-4">No active support tickets</p>
+            </div>
+        </div>
+
+        <div id="trades" class="section">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">Positions</h2>
+                <span class="text-[10px] bg-gray-800 px-2 py-1 rounded">Leverage: 1:100</span>
+            </div>
+            <div id="active-trades-list" class="space-y-4"></div>
+        </div>
+
+        <div id="profile" class="section">
+            <div class="text-center py-4 border-b border-gray-800 mb-6">
+                <div class="w-20 h-20 bg-gray-800 rounded-full mx-auto flex items-center justify-center text-3xl mb-3 border border-yellow-500 text-yellow-500">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div class="mb-2">
+                    <span id="kyc-badge" class="badge bg-red-500/20 text-red-500">Unverified</span>
+                    <button id="kyc-submit-btn" onclick="submitKYC()" class="text-[9px] text-yellow-500 underline ml-2">Complete KYC</button>
+                </div>
+                <h3 id="display-name" class="font-bold text-lg">---</h3>
+                <p id="display-email" class="text-gray-500 text-xs"></p>
+            </div>
+
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Assets & Funding</p>
+            <div class="grid grid-cols-4 gap-2 mb-8">
+                <div onclick="switchPage('deposit-step-1')" class="text-center cursor-pointer"><i class="fas fa-plus-circle block mb-1 text-yellow-500"></i><span class="text-[9px]">Deposit</span></div>
+                <div onclick="openServiceModal('Internal Transfer', 'Move funds between trading accounts.')" class="text-center cursor-pointer"><i class="fas fa-exchange-alt block mb-1"></i><span class="text-[9px]">Transfer</span></div>
+                <div onclick="switchPage('withdraw-step-1')" class="text-center cursor-pointer"><i class="fas fa-minus-circle block mb-1 text-yellow-500"></i><span class="text-[9px]">Withdraw</span></div>
+                <div onclick="openServiceModal('V-Wallet', 'Your current virtual balance: ₹' + currentUserData.wallet.equity)" class="text-center cursor-pointer"><i class="fas fa-wallet block mb-1"></i><span class="text-[9px]">V-Wallet</span></div>
+            </div>
+
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Services & Rewards</p>
+            <div class="card-bg p-4 space-y-4 mb-6">
+                <div class="flex justify-between items-center text-sm"><span>Chart Theme (Dark/Light)</span><input type="checkbox" id="chart-theme-toggle" onchange="renderMarket()"></div>
+                <div onclick="openServiceModal('Coupons', 'Enter code: <input type=\'text\' class=\'bg-black p-1 rounded mt-2 w-full\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Coupons & Promos</span><i class="fas fa-chevron-right text-gray-600"></i></div>
+                <div onclick="openServiceModal('Staking', 'Earn 5% APY on your idle balance. <button class=\'bg-yellow-500 text-black px-2 py-1 rounded block mt-2\'>Enable</button>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Earn (Staking)</span><i class="fas fa-chevron-right text-gray-600"></i></div>
+            </div>
+
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Settings & Other</p>
+            <div class="card-bg p-4 space-y-4 mb-10">
+                <div onclick="openServiceModal('Price Alerts', 'Set target for BTC: <input type=\'number\' class=\'bg-black p-1 rounded\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Price Alerts</span><i class="fas fa-bell"></i></div>
+                <div class="flex justify-between items-center text-sm cursor-pointer"><span>Security (2FA)</span><input type="checkbox" id="two-factor-toggle" onchange="toggle2FA()"></div>
+                <div onclick="openServiceModal('Referral Program', 'Your code: <span class=\'text-white\'>' + currentUserData.myReferralCode + '</span><br><br>Earn 10% commission on every deposit made by your referrals.')" class="flex justify-between items-center text-sm text-yellow-500 font-bold cursor-pointer"><span>IB Partner Program</span><i class="fas fa-briefcase"></i></div>
+            </div>
+
+            <button onclick="logout()" class="w-full p-4 text-red-500 font-bold uppercase text-xs tracking-widest border border-red-500/20 rounded-xl">Sign Out</button>
+        </div>
+
+        <!-- DEPOSIT STEP 1: Details & Coupon -->
+        <div id="deposit-step-1" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('home')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Add Funds</h2>
+            </div>
+            
+            <div class="card-bg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Account ID</p>
+                    <p id="dep-acc-no" class="font-mono text-yellow-500">--------</p>
+                </div>
+                <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Current Balance</p>
+                    <p id="dep-balance" class="font-bold text-lg">$0.00</p>
+                </div>
+                <div class="flex justify-between items-center">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold">Last Updated</p>
+                    <p id="dep-last-update" class="text-[10px] text-gray-400">Never</p>
+                </div>
+            </div>
+
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Deposit Amount (INR)</p>
+            <input type="number" id="dep-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-6 text-2xl font-black text-yellow-500" placeholder="0.00">
+
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Apply Coupon</p>
+            <div class="flex gap-2 mb-8">
+                <input type="text" id="coupon-input" class="flex-1 bg-black border border-gray-800 p-4 rounded-xl text-sm" placeholder="Enter Code">
+                <button onclick="applyCoupon()" class="bg-gray-800 px-6 rounded-xl font-bold text-[10px] uppercase">Apply</button>
+            </div>
+
+            <div id="final-pay-box" class="hidden card-bg p-4 mb-8 border-yellow-500/50">
+                <div class="flex justify-between text-xs mb-1"><span>Total Credit:</span><span id="credit-amt" class="font-bold"></span></div>
+                <div class="flex justify-between text-xs text-green-500 mb-1"><span>Coupon Discount:</span><span id="disc-amt"></span></div>
+                <div class="flex justify-between text-sm font-black border-t border-gray-800 pt-2 mt-2"><span>TO PAY:</span><span id="pay-amt" class="text-yellow-500"></span></div>
+            </div>
+
+            <button onclick="proceedToPayment()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl shadow-yellow-500/10">Continue</button>
+        </div>
+
+        <!-- WALLET TRANSFER PAGE -->
+        <div id="transfer-funds-page" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('home')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Transfer to Wallet</h2>
+            </div>
+            <div class="card-bg p-6 mb-6">
+                <p class="text-[10px] text-gray-500 uppercase mb-1">Main Account Balance</p>
+                <p id="transfer-main-bal" class="text-2xl font-black">₹0.00</p>
+            </div>
+            <div id="activation-notice" class="bg-blue-500/10 border border-blue-500/30 p-4 rounded-xl mb-6">
+                <p class="text-[11px] text-blue-400"><i class="fas fa-info-circle mr-2"></i>To enable withdrawal, you must transfer funds to your Withdrawal Wallet. A one-time activation fee of <b>₹5,850</b> applies (Valid for 365 days).</p>
+            </div>
+            <div id="activation-active-notice" class="hidden bg-green-500/10 border border-green-500/30 p-4 rounded-xl mb-6">
+                <p class="text-[11px] text-green-400"><i class="fas fa-check-circle mr-2"></i>Wallet Activation is <b>ACTIVE</b>. You can transfer funds without any additional fees.</p>
+            </div>
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Transfer Amount (₹)</p>
+            <input type="number" id="transfer-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
+            <button onclick="initiateWalletTransfer()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Pay Fee & Transfer</button>
+        </div>
+
+        <!-- WITHDRAW STEP 1 -->
+        <div id="withdraw-step-1" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('home')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Withdraw Funds</h2>
+            </div>
+            <div class="card-bg p-6 mb-8">
+                <p class="text-[10px] text-gray-500 uppercase mb-2 font-bold tracking-widest">Withdrawal Wallet Balance</p>
+                <p id="withdraw-wallet-bal" class="text-3xl font-black text-white">₹0.00</p>
+                <p id="withdraw-last-update" class="text-[9px] text-gray-500 mt-4 uppercase">Last updated: Just Now</p>
+            </div>
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Amount to Withdraw (₹)</p>
+            <input type="number" id="withdraw-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
+            <button onclick="proceedToWithdrawMethods()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Continue</button>
+        </div>
+
+        <!-- WITHDRAW STEP 2: Methods -->
+        <div id="withdraw-step-2" class="section">
+            <div class="flex items-center justify-between mb-8">
+                <div class="flex items-center gap-4">
+                    <i onclick="switchPage('withdraw-step-1')" class="fas fa-arrow-left text-xl"></i>
+                    <h2 class="text-xl font-bold uppercase italic">Methods</h2>
+                </div>
+                <i onclick="openAddMethodModal()" class="fas fa-plus-circle text-2xl text-yellow-500"></i>
+            </div>
+            <div class="space-y-4" id="saved-methods-list"></div>
+            
+            <p class="text-[10px] text-gray-500 uppercase font-bold mt-10 mb-4">Select Withdrawal Account</p>
+            <div class="grid grid-cols-3 gap-2">
+                <div onclick="showSavedMethods('upi')" class="card-bg p-4 text-center cursor-pointer border border-gray-800"><i class="fas fa-mobile-alt mb-2 block"></i><span class="text-[9px] font-bold uppercase">UPI</span></div>
+                <div onclick="showSavedMethods('bank')" class="card-bg p-4 text-center cursor-pointer border border-gray-800"><i class="fas fa-university mb-2 block"></i><span class="text-[9px] font-bold uppercase">Bank</span></div>
+                <div onclick="showSavedMethods('crypto')" class="card-bg p-4 text-center cursor-pointer border border-gray-800"><i class="fas fa-coins mb-2 block"></i><span class="text-[9px] font-bold uppercase">Crypto</span></div>
+            </div>
+        </div>
+
+        <!-- ADD PAYMENT METHOD MODAL -->
+        <div id="add-method-modal" class="hidden fixed inset-0 bg-black/90 z-[500] p-6 flex items-center justify-center">
+            <div class="card-bg w-full max-w-sm p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="font-black text-yellow-500">ADD METHOD</h3>
+                    <button onclick="document.getElementById('add-method-modal').classList.add('hidden')" class="text-2xl">&times;</button>
+                </div>
+                <select id="method-type-select" onchange="toggleMethodInputs()" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-xs font-bold uppercase">
+                    <option value="upi">UPI ID</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="crypto">Crypto Address</option>
+                </select>
+                
+                <div id="upi-inputs" class="method-fields">
+                    <input type="text" id="new-upi-id" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-sm" placeholder="example@upi">
+                </div>
+                <div id="bank-inputs" class="method-fields hidden">
+                    <input type="text" id="bank-name" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-2 text-sm" placeholder="Bank Name">
+                    <input type="text" id="bank-acc" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-2 text-sm" placeholder="Account Number">
+                    <input type="text" id="bank-ifsc" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-2 text-sm" placeholder="IFSC Code">
+                    <input type="text" id="bank-holder" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Holder Name">
+                </div>
+                <div id="crypto-inputs" class="method-fields hidden">
+                    <input type="text" id="crypto-addr" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-sm" placeholder="USDT (TRC20) Address">
+                </div>
+                
+                <button onclick="savePaymentMethod()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase">Add Account</button>
+            </div>
+        </div>
+
+        <div id="deposit-step-2" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('deposit-step-1')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Select Method</h2>
+            </div>
+
+            <div onclick="selectMethod('UPI')" class="card-bg p-6 mb-4 flex items-center justify-between cursor-pointer border-l-4 border-blue-500">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center text-blue-500"><i class="fas fa-mobile-alt text-xl"></i></div>
+                    <div><p class="font-bold">Direct UPI Pay</p><p class="text-[10px] text-gray-500 italic">Pay via PhonePe, GPay, etc.</p></div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-700"></i>
+            </div>
+
+            <div onclick="selectMethod('QR')" class="card-bg p-6 mb-4 flex items-center justify-between cursor-pointer border-l-4 border-purple-500">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-purple-500/10 rounded-full flex items-center justify-center text-purple-500"><i class="fas fa-qrcode text-xl"></i></div>
+                    <div><p class="font-bold">Scan QR Code</p><p class="text-[10px] text-gray-500 italic">Generate dynamic QR to pay.</p></div>
+                </div>
+                <i class="fas fa-chevron-right text-gray-700"></i>
+            </div>
+        </div>
+
+        <!-- DEPOSIT STEP 3: UPI Details -->
+        <div id="deposit-upi" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('deposit-step-2')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">UPI Details</h2>
+            </div>
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Phone Number (For Verification)</p>
+            <input type="tel" id="user-phone" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold" placeholder="+91 XXXXX XXXXX">
+            <div class="card-bg p-4 mb-10">
+                <p class="text-[10px] text-gray-500 mb-2">Merchant UPI ID</p>
+                <p class="font-mono text-yellow-500 text-lg">7890000144@ybl</p>
+            </div>
+            <button onclick="initiateUPILink()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Pay Now</button>
+        </div>
+
+        <!-- DEPOSIT STEP 3: QR Code -->
+        <div id="deposit-qr" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('deposit-step-2')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Scan & Pay</h2>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="bg-white p-4 rounded-3xl mb-6 shadow-2xl">
+                    <img id="dynamic-qr" src="" alt="Payment QR" class="w-64 h-64">
+                </div>
+                <p class="text-yellow-500 font-black text-2xl mb-2" id="qr-pay-amt">₹0.00</p>
+                <p class="text-[10px] text-gray-500 uppercase mb-8">Scan with any UPI App</p>
+                <button onclick="submitQRRequest()" class="w-full bg-gray-800 text-white py-5 rounded-2xl font-black uppercase">I Have Paid</button>
+            </div>
+        </div>
+
+        <!-- DEPOSIT STEP 4: UTR Verification -->
+        <div id="deposit-utr" class="section">
+            <div class="flex items-center gap-4 mb-8">
+                <i onclick="switchPage('deposit-step-2')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-xl font-bold uppercase italic">Verify Payment</h2>
+            </div>
+            <div class="text-center mb-8">
+                <div class="w-20 h-20 bg-yellow-500/10 rounded-full mx-auto flex items-center justify-center text-yellow-500 text-3xl mb-4">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <p class="text-xs text-gray-400">Please enter the 12-digit UTR / Transaction ID from your payment app to confirm your deposit.</p>
+            </div>
+            <p class="text-[10px] font-bold text-gray-500 uppercase mb-3 text-center">UTR / Transaction Number</p>
+            <input type="number" id="utr-number" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold tracking-[0.5em] text-center text-yellow-500" placeholder="000000000000">
+            <button onclick="submitUTR()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase shadow-lg shadow-yellow-500/20">Submit for Approval</button>
+        </div>
+
+        <!-- ADMIN PANEL SECTIONS -->
+        <div id="admin-dashboard" class="section">
+            <div class="flex items-center justify-between mb-8">
+                <h1 class="text-2xl font-black text-yellow-500 italic">ADMIN CONTROL</h1>
+                <button onclick="logout()" class="text-xs bg-red-600 px-3 py-1 rounded font-bold uppercase">Logout</button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3 mb-8">
+                <div onclick="switchAdminSubPage('admin-deposits')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-blue-500">
+                    <i class="fas fa-wallet text-xl mb-2 text-blue-500"></i>
+                    <p class="text-[10px] font-bold uppercase">Deposits</p>
+                </div>
+                <div onclick="switchAdminSubPage('admin-withdrawals')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-red-500">
+                    <i class="fas fa-hand-holding-usd text-xl mb-2 text-red-500"></i>
+                    <p class="text-[10px] font-bold uppercase">Withdrawals</p>
+                </div>
+                <div onclick="switchAdminSubPage('coupons-admin')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-yellow-500">
+                    <i class="fas fa-ticket-alt text-xl mb-2 text-yellow-500"></i>
+                    <p class="text-[10px] font-bold uppercase">Coupons</p>
+                </div>
+                <div onclick="switchAdminSubPage('admin-users')" class="card-bg p-5 text-center cursor-pointer border-b-2 border-green-500">
+                    <i class="fas fa-users text-xl mb-2 text-green-500"></i>
+                    <p class="text-[10px] font-bold uppercase">Users</p>
+                </div>
+            </div>
+
+            <div id="admin-sub-content">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+
+        <!-- ADMIN SUB-PAGES (HIDDEN BY DEFAULT) -->
+        <div id="coupons-admin" class="section">
+            <div class="flex items-center gap-4 mb-6">
+                <i onclick="switchPage('admin-dashboard')" class="fas fa-arrow-left"></i>
+                <h2 class="text-lg font-bold">COUPON MANAGER</h2>
+            </div>
+            <div id="admin-coupon-content"></div>
+        </div>
+
+        <div id="admin-deposits" class="section">
+            <div class="flex items-center gap-4 mb-6">
+                <i onclick="switchPage('admin-dashboard')" class="fas fa-arrow-left"></i>
+                <h2 class="text-lg font-bold">DEPOSIT REQUESTS</h2>
+            </div>
+            <div id="admin-deposit-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-withdrawals" class="section">
+            <div class="flex items-center gap-4 mb-6">
+                <i onclick="switchPage('admin-dashboard')" class="fas fa-arrow-left"></i>
+                <h2 class="text-lg font-bold">WITHDRAWAL REQUESTS</h2>
+            </div>
+            <div id="admin-withdrawal-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-users" class="section">
+            <div class="flex items-center gap-4 mb-6">
+                <i onclick="switchPage('admin-dashboard')" class="fas fa-arrow-left"></i>
+                <h2 class="text-lg font-bold">USER MANAGEMENT</h2>
+            </div>
+            <div id="admin-user-list-content" class="space-y-4"></div>
+        </div>
+
+        <!-- USER DETAIL MANAGER (ADMIN) -->
+        <div id="admin-user-manager" class="section">
+            <div class="flex items-center gap-4 mb-6">
+                <i onclick="switchPage('admin-users')" class="fas fa-arrow-left text-xl"></i>
+                <h2 class="text-lg font-bold uppercase italic">Manage Customer</h2>
+            </div>
+            <div id="managed-user-info" class="card-bg p-6 mb-6"></div>
+            
+            <div class="mb-6">
+                <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Quick Funds Control</h3>
+                <div class="flex gap-2">
+                    <input type="number" id="admin-adj-val" class="flex-1 bg-black p-4 rounded-xl border border-gray-700" placeholder="Amount">
+                    <button onclick="adminAdjustUserBalance(1)" class="bg-green-600 px-6 rounded-xl font-bold">ADD</button>
+                    <button onclick="adminAdjustUserBalance(-1)" class="bg-red-600 px-6 rounded-xl font-bold">SUB</button>
+                </div>
+            </div>
+
+            <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Open Positions</h3>
+            <div id="managed-user-trades" class="space-y-4 mb-10"></div>
+            
+            <button onclick="adminOpenTradeForUser()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase mb-10">Force Open Trade</button>
+        </div>
+
+        <div id="admin" class="hidden">
+            <!-- Legacy container, keeping it to avoid broken refs -->
+            <h2 class="text-2xl font-black text-yellow-500 italic mb-6">COMMAND CENTER</h2>
+            <div class="flex items-center gap-2 mb-4">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest">User Management</h3>
+            </div>
+            <div id="admin-user-list" class="space-y-6"></div>
+        </div>
+
+        <nav id="user-nav" class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around py-3 px-2">
+            <div onclick="switchPage('home', this)" class="text-center nav-active cursor-pointer">
+                <i class="fas fa-home block text-xl mb-1"></i><span class="text-[9px] font-bold">HOME</span>
+            </div>
+            <div onclick="switchPage('market', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-chart-line block text-xl mb-1"></i><span class="text-[9px] font-bold">MARKET</span>
+            </div>
+            <div onclick="switchPage('support', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-headset block text-xl mb-1"></i><span class="text-[9px] font-bold">SUPPORT</span>
+            </div>
+            <div onclick="switchPage('history', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-history block text-xl mb-1"></i><span class="text-[9px] font-bold">HISTORY</span>
+            </div>
+            <div onclick="switchPage('trades', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-exchange-alt block text-xl mb-1"></i><span class="text-[9px] font-bold">TRADES</span>
+            </div>
+            <div onclick="switchPage('profile', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-user block text-xl mb-1"></i><span class="text-[9px] font-bold">PROFILE</span>
+            </div>
+        </nav>
+    </div>
+
+    <div id="trade-modal" class="hidden fixed inset-0 bg-black/95 z-[200] flex flex-col">
+        <div class="p-4 flex justify-between items-center border-b border-gray-800">
+            <h3 id="modal-symbol" class="font-bold">SYMBOL</h3>
+            <button onclick="closeTradeModal()" class="text-2xl">&times;</button>
+        </div>
+        <div class="flex-1">
+            <iframe id="tradingview-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
+        </div>
+        <div class="bg-[#161b22] p-6 rounded-t-3xl shadow-2xl border-t border-gray-700">
+            <div class="flex justify-between items-center mb-6">
+                <p id="modal-price" class="text-2xl font-bold text-yellow-500">0.00</p>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] text-gray-500">LOT:</span>
+                    <input type="number" id="lot-size" value="0.10" step="0.01" class="w-20 bg-black border border-gray-700 p-2 rounded font-bold text-center">
+                </div>
+            </div>
+            <div class="flex gap-4 mb-6">
+                <div class="flex-1">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Stop Loss (SL)</p>
+                    <input type="number" id="stop-loss" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center" placeholder="None">
+                </div>
+                <div class="flex-1">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Take Profit (TP)</p>
+                    <input type="number" id="take-profit" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center" placeholder="None">
+                </div>
+            </div>
+            <div class="flex gap-4">
+                <button onclick="executeTrade('SELL')" class="flex-1 bg-red-600 py-4 rounded-xl font-bold uppercase tracking-widest">Sell</button>
+                <button onclick="executeTrade('BUY')" class="flex-1 bg-green-600 py-4 rounded-xl font-bold uppercase tracking-widest">Buy</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- GENERIC SERVICE MODAL -->
+    <div id="service-modal" class="hidden fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-6">
+        <div class="card-bg w-full max-w-sm p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="service-title" class="font-bold text-yellow-500 uppercase italic">Service</h3>
+                <button onclick="closeServiceModal()" class="text-xl">&times;</button>
+            </div>
+            <div id="service-content" class="text-sm text-gray-400 mb-6"></div>
+            <button onclick="closeServiceModal()" class="w-full bg-yellow-500 text-black py-3 rounded-xl font-bold uppercase text-[10px]">Close</button>
+        </div>
+    </div>
+
+    <!-- CUSTOM NOTIFICATION (TOAST) CONTAINER -->
+    <div id="toast-container" class="fixed top-4 right-4 z-[1000] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- CUSTOM PROMPT/CONFIRM MODAL -->
+    <div id="prompt-modal" class="hidden fixed inset-0 bg-black/80 modal-blur z-[400] flex items-center justify-center p-6">
+        <div class="card-bg w-full max-w-sm p-6 shadow-2xl border-yellow-500/20">
+            <h3 id="prompt-title" class="font-bold text-yellow-500 mb-2 uppercase italic tracking-widest text-sm">Action Required</h3>
+            <p id="prompt-msg" class="text-xs text-gray-400 mb-6 leading-relaxed"></p>
+            <input type="text" id="prompt-input" class="hidden w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-6 text-sm text-white focus:border-yellow-500 transition-all" placeholder="Enter value...">
+            <div class="flex gap-3">
+                <button id="prompt-cancel" class="flex-1 bg-gray-800 text-gray-400 py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-gray-700 transition">Cancel</button>
+                <button id="prompt-confirm" class="flex-1 bg-yellow-500 text-black py-3 rounded-xl font-bold uppercase text-[10px] hover:scale-105 transition">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PnL CARD MODAL -->
+    <div id="pnl-card-modal" class="hidden fixed inset-0 bg-black/90 z-[600] flex items-center justify-center p-6">
+        <div class="w-full max-w-sm">
+            <div id="pnl-card" class="bg-gradient-to-br from-gray-900 to-black border border-yellow-500/30 rounded-3xl p-8 text-center relative overflow-hidden">
+                <!-- Background watermark/decoration -->
+                <div class="absolute -right-10 -top-10 text-yellow-500/5 text-9xl font-black italic">PRO</div>
+                
+                <h2 class="text-yellow-500 font-black italic tracking-tighter mb-8">THE FOREX ROOM</h2>
+                
+                <div class="mb-6">
+                    <p id="card-symbol" class="text-2xl font-black">XAUUSD</p>
+                    <p id="card-type" class="text-[10px] uppercase font-bold text-gray-500">BUY POSITION</p>
+                </div>
+
+                <div class="mb-8">
+                    <h1 id="card-pnl" class="text-5xl font-black text-green-500">+₹500.00</h1>
+                    <p class="text-[9px] text-gray-500 mt-2 uppercase">Real-Time Market Performance</p>
+                </div>
+
+                <div class="flex justify-between border-t border-gray-800 pt-6">
+                    <div class="text-left"><p class="text-[8px] text-gray-500 uppercase">Account</p><p class="text-[10px] font-bold italic" id="card-acc">ID: 882910</p></div>
+                    <div class="text-right"><p class="text-[8px] text-gray-500 uppercase">Status</p><p class="text-[10px] font-bold text-green-500">PROFIT</p></div>
+                </div>
+            </div>
+            <p class="text-center text-gray-500 text-[10px] mt-6 mb-4">Screenshot this card to share your success!</p>
+            <button onclick="document.getElementById('pnl-card-modal').classList.add('hidden')" class="w-full bg-yellow-500 text-black py-4 rounded-2xl font-black uppercase">Back to Terminal</button>
+        </div>
+    </div>
+
+    <script>
+        // FIREBASE CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyBQhAPr84ML-TD5hMV6vb3f_k1ywJnOH78",
+            authDomain: "the-forex-room.firebaseapp.com",
+            projectId: "the-forex-room",
+            storageBucket: "the-forex-room.firebasestorage.app",
+            messagingSenderId: "880145153069",
+            appId: "1:880145153069:web:ac4ce3d2e5b21dfa860ca4",
+            measurementId: "G-Q80M6KB90C"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        const ADMIN_UID = "t0XAOmRtUNU3hj1z1GjWK2kE7ei1";
+
+        // Pairs updated via Live WebSocket (should not have random fluctuations)
+        const WS_SYMBOLS = [
+            'BTCUSD', 'ETHUSD', 'XAUUSD', 'SOLUSD', 'DOGEUSD', 'BNBUSD', 
+            'XRPUSD', 'LTCUSD', 'ADAUSD', 'LINKUSD', 'TRXUSD', 'DOTUSD', 'MATICUSD'
+        ];
+
+        let isLogin = true;
+        let activeTradesData = [];
+        let currentUserData = null;
+        let searchResults = [];
+        let currentFilter = 'all';
+        let priceSocket;
+        // GLOBAL DEPOSIT STATE
+        let managedUserId = null;
+        let depositData = { amount: 0, coupon: null, toPay: 0, method: '', currentTrxId: null, type: 'DEPOSIT' };
+
+        async function applyCoupon() {
+            const code = document.getElementById('coupon-input').value.toUpperCase();
+            const amt = parseFloat(document.getElementById('dep-amount-input').value);
+            if(!amt) return showToast("Enter amount first", "error");
+            
+            const snap = await db.collection('coupons').where('code', '==', code).get();
+            if(snap.empty) return showToast("Invalid Coupon", "error");
+            const cpDoc = snap.docs[0];
+            const cp = cpDoc.data();
+            
+            if(!cp.active) return showToast("Coupon is Expired", "error");
+            
+            depositData.coupon = cp;
+            depositData.amount = amt;
+            depositData.toPay = Math.max(0, amt - cp.value);
+            document.getElementById('final-pay-box').classList.remove('hidden');
+            document.getElementById('credit-amt').innerText = "₹" + amt;
+            document.getElementById('disc-amt').innerText = "-₹" + cp.value;
+            document.getElementById('pay-amt').innerText = "₹" + depositData.toPay;
+            showToast("Coupon Applied!", "success");
+        }
+
+        function proceedToPayment() {
+            const amt = parseFloat(document.getElementById('dep-amount-input').value);
+            if(!amt || amt < 100) return showToast("Minimum deposit ₹100", "error");
+            depositData.type = 'DEPOSIT';
+            if(!depositData.coupon) {
+                depositData.amount = amt;
+                depositData.toPay = amt;
+            }
+            switchPage('deposit-step-2');
+        }
+
+        function selectMethod(m) {
+            depositData.method = m;
+            if(m === 'UPI') switchPage('deposit-upi');
+            else initiateQR();
+        }
+
+        const marketItems = [
+            { s: 'XAUUSD', n: 'Gold', p: 2715.40, cat: 'metals' },
+            { s: 'XAGUSD', n: 'Silver', p: 31.80, cat: 'metals' },
+            { s: 'BTCUSD', n: 'Bitcoin', p: 96420.50, cat: 'crypto' },
+            { s: 'ETHUSD', n: 'Ethereum', p: 2680.20, cat: 'crypto' },
+            { s: 'SOLUSD', n: 'Solana', p: 188.40, cat: 'crypto' },
+            { s: 'BNBUSD', n: 'Binance Coin', p: 625.10, cat: 'crypto' },
+            { s: 'DOGEUSD', n: 'Dogecoin', p: 0.38, cat: 'crypto' },
+            { s: 'XRPUSD', n: 'Ripple', p: 2.45, cat: 'crypto' },
+            { s: 'LTCUSD', n: 'Litecoin', p: 112.30, cat: 'crypto' },
+            { s: 'ADAUSD', n: 'Cardano', p: 1.08, cat: 'crypto' },
+            { s: 'LINKUSD', n: 'Chainlink', p: 22.40, cat: 'crypto' },
+            { s: 'EURUSD', n: 'Euro/USD', p: 1.0542, cat: 'forex' },
+            { s: 'GBPUSD', n: 'Pound/USD', p: 1.2645, cat: 'forex' },
+            { s: 'USDJPY', n: 'USD/Yen', p: 152.12, cat: 'forex' },
+            { s: 'AUDUSD', n: 'AUD/USD', p: 0.6480, cat: 'forex' },
+            { s: 'USDCAD', n: 'USD/CAD', p: 1.4020, cat: 'forex' },
+            { s: 'USDCHF', n: 'USD/CHF', p: 0.8940, cat: 'forex' },
+            { s: 'USOIL', n: 'Crude Oil', p: 78.42, cat: 'commodities' },
+            { s: 'NGAS', n: 'Natural Gas', p: 2.45, cat: 'commodities' },
+            { s: 'NAS100', n: 'Nasdaq 100', p: 18230.00, cat: 'indices' },
+            { s: 'SPX500', n: 'S&P 500', p: 5120.40, cat: 'indices' },
+            { s: 'GER40', n: 'DAX 40', p: 17850.00, cat: 'indices' },
+            { s: 'UK100', n: 'FTSE 100', p: 7920.00, cat: 'indices' },
+            { s: 'QQQ', n: 'Invesco ETF', p: 430.20, cat: 'etf' },
+            { s: 'SPY', n: 'S&P 500 ETF', p: 510.50, cat: 'etf' }
+        ];
+
+        // SEARCH LOGIC
+        function searchMarket(query) {
+            query = query.toUpperCase();
+            const list = document.getElementById('full-market-list');
+            if(!query) {
+                searchResults = [];
+                renderMarket();
+                return;
+            }
+
+            // Filter existing
+            const filtered = marketItems.filter(i => i.s.includes(query) || i.n.toUpperCase().includes(query));
+            
+            // If not in list, add a "Discover" option for any TradingView symbol
+            if(filtered.length === 0 && query.length > 2) {
+                filtered.push({ s: query, n: 'Global Asset', p: 0, cat: 'other', custom: true });
+            }
+            
+            searchResults = filtered;
+            renderMarketList(filtered);
+        }
+
+        // RENDER MARKET DATA
+        function renderMarket() {
+            if(searchResults.length > 0) return; // Don't override search
+            renderMarketList(marketItems.filter(item => currentFilter === 'all' || item.cat === currentFilter));
+        }
+
+        function renderMarketList(items) {
+            const flist = document.getElementById('full-market-list');
+            const qlist = document.getElementById('quick-market');
+            const modalSymbol = document.getElementById('modal-symbol').innerText;
+            const isModalOpen = !document.getElementById('trade-modal').classList.contains('hidden');
+            
+            let fhtml = '';
+
+            items.forEach((item, idx) => {
+                // Only fluctuate if NOT updated by Live WebSocket
+                if(!WS_SYMBOLS.includes(item.s)) {
+                    let fluctuation = 0;
+                    if(item.cat === 'forex') fluctuation = (Math.random() * 0.0002 - 0.0001); // Realistic Forex move
+                    else if(item.cat === 'metals') fluctuation = (Math.random() * 0.1 - 0.05); // Smooth Gold move
+                    else fluctuation = (Math.random() * 1 - 0.5); // Indices/Others move
+                    
+                    item.p += fluctuation;
+                }
+
+                // Live update the price in the Trade Modal if it's open for this symbol
+                if(isModalOpen && modalSymbol === item.s) {
+                    const precision = item.cat === 'forex' ? 4 : 2;
+                    document.getElementById('modal-price').innerText = item.p.toFixed(precision);
+                }
+
+                const card = `
+                <div onclick="openTradeModal('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition mb-2">
+                    <div>
+                        <p class="font-bold text-sm">${item.s}</p>
+                        <p class="text-[9px] text-gray-500 uppercase font-bold">${item.n}</p>
+                    </div>
+                    <p id="list-price-${item.s}" class="font-mono font-bold text-green-500 text-sm">${item.p > 0 ? item.p.toFixed(item.cat === 'forex' ? 4 : 2) : 'FETCHING...'}</p>
+                </div>`;
+                fhtml += card;
+            });
+            flist.innerHTML = fhtml;
+
+            // Quick market (Watchlist) always uses top of main list
+            if(currentFilter === 'all' && items === marketItems) {
+                let qhtml = '';
+                marketItems.slice(0, 6).forEach(item => {
+                    qhtml += `
+                    <div onclick="openTradeModal('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition">
+                        <div><p class="font-bold text-sm">${item.s}</p><p class="text-[9px] text-gray-500 font-bold">${item.n}</p></div>
+                        <p class="font-mono font-bold text-green-500 text-sm">${item.p.toFixed(2)}</p>
+                    </div>`;
+                });
+                qlist.innerHTML = qhtml;
+            }
+
+            updateLivePnL();
+        }
+
+        // REAL-TIME API (BINANCE WS)
+        function initPriceSocket() {
+            // Tracking 10+ major assets via Binance WebSocket
+            priceSocket = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker/ethusdt@ticker/paxgusdt@ticker/solusdt@ticker/dogeusdt@ticker/bnbusdt@ticker/xrpusdt@ticker/ltcusdt@ticker/adausdt@ticker/linkusdt@ticker');
+            priceSocket.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                let mappedSymbol;
+                
+                const mapping = {
+                    'BTCUSDT': 'BTCUSD', 'ETHUSDT': 'ETHUSD', 'PAXGUSDT': 'XAUUSD',
+                    'SOLUSDT': 'SOLUSD', 'DOGEUSDT': 'DOGEUSD', 'BNBUSDT': 'BNBUSD',
+                    'XRPUSDT': 'XRPUSD', 'LTCUSDT': 'LTCUSD', 'ADAUSDT': 'ADAUSD', 'LINKUSDT': 'LINKUSD'
+                };
+                mappedSymbol = mapping[data.s];
+
+                const item = marketItems.find(m => m.s === mappedSymbol);
+                if(item) {
+                    item.p = parseFloat(data.c);
+                    // Immediate PnL update for open trades
+                    updateLivePnL();
+
+                    const modalSymbol = document.getElementById('modal-symbol').innerText;
+                    if(modalSymbol === mappedSymbol) {
+                        const precision = item.cat === 'forex' ? 4 : 2;
+                        document.getElementById('modal-price').innerText = item.p.toFixed(precision);
+                    }
+                }
+            };
+        }
+
+        // AUTH STATE
+        auth.onAuthStateChanged(user => {
+            if(user) {
+                // Admin account should use admin.html
+                if(user.uid === ADMIN_UID) {
+                    showToast("Admin account detected. Redirecting to Management Panel...", "info");
+                    setTimeout(() => window.location.href = 'admin.html', 2000);
+                    return;
+                }
+
+                // Listen for Global Settings (Maintenance & Alerts)
+                db.collection('settings').doc('global').onSnapshot(doc => {
+                    const s = doc.data();
+                    if(s.maintenanceMode) {
+                        alert("Platform is under maintenance. Please try again later.");
+                        auth.signOut();
+                        return;
+                    }
+                    if(s.announcement) {
+                        document.getElementById('global-alert').classList.remove('hidden');
+                        document.getElementById('alert-text').innerText = s.announcement;
+                    } else {
+                        document.getElementById('global-alert').classList.add('hidden');
+                    }
+                });
+
+                db.collection('users').doc(user.uid).onSnapshot(doc => {
+                    const d = doc.data();
+                    if(!d) return;
+                    if(d.accountBanned) {
+                        showToast("Your account has been suspended.", "error");
+                        setTimeout(() => { auth.signOut(); location.reload(); }, 2000);
+                        return;
+                    }
+                    currentUserData = d;
+                    document.getElementById('display-acc-no').innerText = "ID: " + d.accountNumber;
+                    document.getElementById('user-equity').innerText = "₹" + d.wallet.equity.toFixed(2);
+                    document.getElementById('withdraw-wallet-display').innerText = "₹" + (d.wallet.withdrawalWallet || 0).toFixed(2);
+                    
+                    document.getElementById('display-name').innerText = d.name;
+                    document.getElementById('display-email').innerText = d.email;
+
+                    // Update Deposit Page UI
+                    document.getElementById('dep-acc-no').innerText = d.accountNumber;
+                    document.getElementById('dep-balance').innerText = "₹" + d.wallet.equity.toFixed(2);
+                    document.getElementById('withdraw-wallet-bal').innerText = "₹" + (d.wallet.withdrawalWallet || 0).toFixed(2);
+                    document.getElementById('transfer-main-bal').innerText = "₹" + d.wallet.equity.toFixed(2);
+                    document.getElementById('dep-last-update').innerText = d.lastUpdated ? d.lastUpdated.toDate().toLocaleString() : 'Just Now';
+
+                    // Activation Status Logic
+                    const now = Date.now();
+                    const isActivated = d.walletActivation && d.walletActivation.status === 'ACTIVE' && (d.walletActivation.expiry > now);
+                    
+                    const notice = document.getElementById('activation-notice');
+                    const activeNotice = document.getElementById('activation-active-notice');
+                    if(isActivated) {
+                        notice.classList.add('hidden');
+                        activeNotice.classList.remove('hidden');
+                    } else {
+                        notice.classList.remove('hidden');
+                        activeNotice.classList.add('hidden');
+                    }
+
+                    // Toggle states
+                    if(document.getElementById('two-factor-toggle')) {
+                        document.getElementById('two-factor-toggle').checked = d.twoFactorEnabled || false;
+                    }
+
+                    // KYC Status
+                    const kBadge = document.getElementById('kyc-badge');
+                    kBadge.innerText = d.kycStatus || 'Unverified';
+                    kBadge.className = `badge ${d.kycStatus === 'Verified' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`;
+                    document.getElementById('kyc-submit-btn').classList.toggle('hidden', d.kycStatus === 'Verified');
+                    
+                    const wBtn = document.getElementById('withdraw-btn');
+                    if(d.withdrawLocked) {
+                        wBtn.classList.add('opacity-50', 'pointer-events-none');
+                        wBtn.innerText = "Locked";
+                    } else {
+                        wBtn.classList.remove('opacity-50', 'pointer-events-none');
+                        wBtn.innerText = "Withdraw";
+                    }
+                });
+                document.getElementById('auth-container').classList.add('hidden');
+                document.getElementById('app-container').classList.remove('hidden');
+                document.getElementById('user-nav').classList.remove('hidden');
+                switchPage('home');
+                loadTrades(user.uid);
+                loadHistory(user.uid);
+                loadSupportTickets(user.uid);
+                initPriceSocket();
+            } else {
+                document.getElementById('auth-container').classList.remove('hidden');
+                document.getElementById('app-container').classList.add('hidden');
+            }
+        });
+
+        // CORE UI LOGIC
+        function toggleAuth() {
+            isLogin = !isLogin;
+            document.getElementById('auth-title').innerText = isLogin ? 'Sign In' : 'Sign Up';
+            if(document.getElementById('register-fields')) document.getElementById('register-fields').classList.toggle('hidden', isLogin);
+            document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
+            document.getElementById('auth-switch-text').innerText = isLogin ? 'New to the platform?' : 'Already have an account?';
+            document.getElementById('auth-toggle-btn').innerText = isLogin ? 'Create Account' : 'Sign In';
+        }
+
+        async function handleAuth() {
+            const email = document.getElementById('user-email').value;
+            const pass = document.getElementById('user-password').value;
+            try {
+                if(isLogin) await auth.signInWithEmailAndPassword(email, pass);
+                else {
+                    const res = await auth.createUserWithEmailAndPassword(email, pass);
+                    const myRefCode = email.split('@')[0].toUpperCase() + Math.floor(100 + Math.random() * 900);
+                    await db.collection('users').doc(res.user.uid).set({
+                        uid: res.user.uid, name: document.getElementById('user-name').value, email,
+                        accountNumber: Math.floor(Math.random() * 9000000) + 1000000,
+                        wallet: { equity: 1000.00, withdrawalWallet: 0 }, 
+                        withdrawLocked: false, kycStatus: 'Pending',
+                        myReferralCode: myRefCode,
+                        referredBy: document.getElementById('reg-referral-code').value.toUpperCase() || null
+                    });
+                }
+            } catch(e) { showToast(e.message, "error"); }
+        }
+
+        async function sendSupportTicket() {
+            const msg = document.getElementById('support-msg').value;
+            if(!msg) return showToast("Please enter a message", "error");
+            if(!currentUserData) return showToast("User data not ready", "error");
+            
+            await db.collection('support_tickets').add({
+                userId: auth.currentUser.uid,
+                userName: currentUserData.name,
+                messages: [{ role: 'user', text: msg, time: Date.now() }],
+                status: 'OPEN',
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('support-msg').value = '';
+            showToast("Ticket submitted! Our team will reply shortly.", "success");
+        }
+
+        function loadSupportTickets(uid) {
+            db.collection('support_tickets').where('userId', '==', uid).onSnapshot({ includeMetadataChanges: true },
+                snap => {
+                const list = document.getElementById('my-tickets');
+                if(!list) return;
+                
+                if(snap.empty) { 
+                    list.innerHTML = '<p class="text-center text-gray-700 text-[10px] mt-4">No active support tickets</p>'; 
+                    return; 
+                }
+                
+                // Convert snapshot to sorted array safely
+                let tickets = snap.docs.map(doc => ({ id: doc.id, ...doc.data({ serverTimestamps: 'estimate' }) }));
+                
+                tickets.sort((a, b) => {
+                    const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+                    const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+                    return timeB - timeA;
+                });
+
+                let html = '';
+                tickets.forEach(t => {
+                    const msgs = t.messages || [];
+                    let chatHtml = msgs.map(m => `
+                        <div class="mb-2 ${m.role === 'admin' ? 'text-left' : 'text-right'}">
+                            <p class="text-[8px] font-bold ${m.role === 'admin' ? 'text-yellow-500' : 'text-blue-400'} uppercase">${m.role === 'admin' ? 'Admin' : 'You'}</p>
+                            <p class="text-[11px] text-gray-300 bg-black/40 inline-block p-2 rounded-lg border border-gray-800">${m.text}</p>
+                        </div>
+                    `).join('');
+
+                    const timeStr = t.timestamp && typeof t.timestamp.toDate === 'function' ? t.timestamp.toDate().toLocaleString() : 'Pending...';
+                    
+                    html += `
+                    <div class="p-4 card-bg border-l-4 ${t.status === 'OPEN' ? 'border-yellow-500' : 'border-green-500'} mb-4 shadow-xl">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="badge ${t.status === 'OPEN' ? 'bg-yellow-500/20 text-yellow-500' : 'bg-green-500/20 text-green-500'}">${t.status}</span>
+                            <span class="text-[8px] text-gray-500">${timeStr}</span>
+                        </div>
+                        <div class="max-h-48 overflow-y-auto mb-4 no-scrollbar border-y border-gray-800/50 py-3 flex flex-col" id="chat-box-${t.id}">
+                            ${chatHtml}
+                        </div>
+                        ${t.status === 'OPEN' ? `
+                        <div class="flex gap-2">
+                            <input type="text" id="cust-reply-${t.id}" placeholder="Reply..." class="flex-1 bg-black p-2 rounded text-[10px] border border-gray-700">
+                            <button onclick="replyToTicketCustomer('${t.id}')" class="bg-yellow-500 text-black px-3 py-1 rounded text-[10px] font-bold uppercase">Send</button>
+                        </div>` : ''}
+                    </div>`;
+                });
+                list.innerHTML = html;
+                
+                // Auto-scroll each chat box to the latest message
+                setTimeout(() => {
+                    tickets.forEach(t => {
+                        const box = document.getElementById(`chat-box-${t.id}`);
+                        if(box) box.scrollTop = box.scrollHeight;
+                    });
+                }, 100);
+            }, error => {
+                console.error("Error loading support tickets:", error);
+                const list = document.getElementById('my-tickets');
+                if(list) list.innerHTML = '<p class="text-center text-red-500 text-[10px] mt-4">Error loading tickets.</p>';
+            });
+        }
+
+        async function replyToTicketCustomer(tid) {
+            const reply = document.getElementById('cust-reply-'+tid).value;
+            if(!reply) return;
+            await db.collection('support_tickets').doc(tid).update({ 
+                messages: firebase.firestore.FieldValue.arrayUnion({ role: 'user', text: reply, time: Date.now() }),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            document.getElementById('cust-reply-'+tid).value = '';
+            showToast("Reply sent", "success");
+        }
+
+        function switchPage(p, el) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('section-active'));
+            document.getElementById(p).classList.add('section-active');
+            document.querySelectorAll('nav div').forEach(d => d.classList.remove('nav-active'));
+            if(el) el.classList.add('nav-active');
+        }
+
+        // PAYMENT EXECUTION
+        async function initiateUPILink() {
+            const phone = document.getElementById('user-phone').value;
+            if(!phone || phone.length < 10) return showToast("Valid Phone Required", "error");
+            
+            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
+            
+            const trx = await db.collection('transactions').add({
+                userId: auth.currentUser.uid, 
+                type: depositData.type === 'ACTIVATION' ? 'WALLET_TRANSFER_REQUEST' : 'DEPOSIT_PENDING', 
+                amount: depositData.amount, toPay: depositData.toPay, 
+                method: 'UPI', phone: phone, coupon: depositData.coupon?.code || 'NONE',
+                status: 'INITIATED', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            depositData.currentTrxId = trx.id;
+            switchPage('deposit-utr');
+            
+            window.location.href = upiUrl;
+            showToast("Check your payment apps", "info");
+        }
+
+        function initiateQR() {
+            const qrImg = document.getElementById('dynamic-qr');
+            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
+            document.getElementById('qr-pay-amt').innerText = "₹" + depositData.toPay;
+            switchPage('deposit-qr');
+        }
+
+        async function submitQRRequest() {
+            const trx = await db.collection('transactions').add({
+                userId: auth.currentUser.uid, 
+                type: depositData.type === 'ACTIVATION' ? 'WALLET_TRANSFER_REQUEST' : 'DEPOSIT_PENDING', 
+                amount: depositData.amount, toPay: depositData.toPay, 
+                method: 'QR', coupon: depositData.coupon?.code || 'NONE',
+                status: 'INITIATED', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            depositData.currentTrxId = trx.id;
+            switchPage('deposit-utr');
+        }
+
+        async function submitUTR() {
+            const utr = document.getElementById('utr-number').value;
+            if(!utr || utr.length < 12) return showToast("Enter valid 12-digit UTR", "error");
+            
+            await db.collection('transactions').doc(depositData.currentTrxId).update({
+                utr: utr,
+                status: 'AWAITING_APPROVAL'
+            });
+            showToast("Payment submitted! Awaiting Admin approval.", "success");
+            switchPage('home');
+            document.getElementById('utr-number').value = '';
+        }
+
+        function openServiceModal(title, content) {
+            document.getElementById('service-title').innerText = title;
+            document.getElementById('service-content').innerHTML = content;
+            document.getElementById('service-modal').classList.remove('hidden');
+        }
+
+        function closeServiceModal() {
+            document.getElementById('service-modal').classList.add('hidden');
+        }
+
+        async function openTradeModal(s) {
+            document.getElementById('modal-symbol').innerText = s;
+            let item = marketItems.find(m => m.s === s) || searchResults.find(m => m.s === s);
+            
+            // If it's a new custom symbol, add it to our tracking
+            if(!item) {
+                item = { s: s, n: 'Global Asset', p: 0, cat: 'other' };
+                marketItems.push(item);
+            }
+
+            // INSTANT PRICE FETCH (Fixes "Old Price" issue)
+            // We try to fetch from Binance API for most cryptos/pairs
+            try {
+                const cleanSymbol = s.replace('USD', 'USDT');
+                const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSymbol}`);
+                const data = await response.json();
+                if(data.price) item.p = parseFloat(data.price);
+            } catch (e) {
+                // Fallback to current memory price if API fails
+                if(item.p === 0) item.p = 100.00; 
+            }
+
+            if(!item) return;
+            
+            const precision = item?.cat === 'forex' ? 4 : 2;
+            document.getElementById('modal-price').innerText = item.p.toFixed(precision);
+            document.getElementById('stop-loss').value = '';
+            document.getElementById('take-profit').value = '';
+            
+            const theme = document.getElementById('chart-theme-toggle').checked ? 'light' : 'dark';
+            // Load custom symbol in TradingView
+            document.getElementById('tradingview-frame').src = `https://s.tradingview.com/widgetembed/?symbol=${s}&interval=1&theme=${theme}&style=1`;
+            document.getElementById('trade-modal').classList.remove('hidden');
+        }
+
+        function closeTradeModal() { document.getElementById('trade-modal').classList.add('hidden'); }
+
+        async function executeTrade(type) {
+            const lot = document.getElementById('lot-size').value;
+            const symbol = document.getElementById('modal-symbol').innerText;
+            const price = parseFloat(document.getElementById('modal-price').innerText);
+            const sl = document.getElementById('stop-loss').value;
+            const tp = document.getElementById('take-profit').value;
+            
+            // MARGIN CHECK (1:100 Leverage)
+            const requiredMargin = (price * parseFloat(lot)) / 100;
+            if(currentUserData.wallet.equity < requiredMargin) {
+                showToast("Insufficient Margin! Deposit funds to continue.", "error");
+                return;
+            }
+
+            await db.collection('trades').add({
+                userId: auth.currentUser.uid, symbol, type, lot: parseFloat(lot),
+                entryPrice: price, 
+                stopLoss: sl ? parseFloat(sl) : null,
+                takeProfit: tp ? parseFloat(tp) : null,
+                status: 'OPEN', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            showToast("Order Dispatched to Liquidity Pool.", "success");
+            closeTradeModal();
+        }
+
+        async function toggle2FA() {
+            const status = document.getElementById('two-factor-toggle').checked;
+            await db.collection('users').doc(auth.currentUser.uid).update({ twoFactorEnabled: status });
+            showToast("2FA Security " + (status ? "Enabled" : "Disabled"), "info");
+        }
+
+        async function submitKYC() {
+            const name = await showPrompt("KYC Submission", "Please enter your full legal name for verification:", true);
+            if(name) {
+                await db.collection('users').doc(auth.currentUser.uid).update({ kycStatus: 'Reviewing' });
+                showToast("KYC submitted for review.", "info");
+            }
+        }
+
+        function loadTrades(uid) {
+            db.collection('trades').where('userId', '==', uid).where('status', '==', 'OPEN').onSnapshot(snap => {
+                activeTradesData = [];
+                snap.forEach(doc => activeTradesData.push({ id: doc.id, ...doc.data() }));
+                updateLivePnL();
+            });
+        }
+
+        function updateLivePnL() {
+            const list = document.getElementById('active-trades-list');
+            if(!list) return;
+            if(activeTradesData.length === 0) {
+                list.innerHTML = `
+                    <div class="text-center mt-20">
+                        <i class="fas fa-box-open text-gray-800 text-5xl mb-4"></i>
+                        <p class="text-gray-500 text-xs mb-6 uppercase tracking-widest">No Active Positions</p>
+                        <button onclick="switchPage('market')" class="bg-yellow-500 text-black px-8 py-3 rounded-xl font-black text-[10px] uppercase">Explore Markets</button>
+                    </div>
+                `;
+                return;
+            }
+            let html = '';
+            activeTradesData.forEach(t => {
+                const live = marketItems.find(m => m.s === t.symbol)?.p || t.entryPrice;
+                // Multiplier adjusted for INR pips
+                let pnl = t.manualPnL !== undefined ? t.manualPnL : (t.type === 'BUY' ? (live - t.entryPrice) : (t.entryPrice - live)) * t.lot * 1000;
+                
+                html += `
+                <div class="p-4 card-bg flex justify-between items-center border-l-4 ${t.type === 'BUY' ? 'border-green-500' : 'border-red-500'}">
+                    <div><p class="font-bold text-xs">${t.symbol} <span class="bg-black px-1 rounded text-[8px] ml-1 uppercase">${t.type}</span></p>
+                    <p class="text-[9px] text-gray-500">Entry: ${t.entryPrice.toFixed(2)} | Lot: ${t.lot}</p>
+                    <p class="text-[8px] text-gray-600 mt-1 uppercase">SL: ${t.stopLoss || '---'} | TP: ${t.takeProfit || '---'}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-sm ${pnl >= 0 ? 'profit-pos' : 'profit-neg'}">₹${pnl.toFixed(2)}</p>
+                        <button onclick="closePosition('${t.id}', ${pnl})" class="text-[8px] bg-red-900/30 text-red-500 px-2 py-1 rounded mt-1 font-bold">CLOSE</button>
+                    </div>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        let currentHistoryFilter = 'trades';
+        function loadHistory(uid) {
+            filterUserHistory(currentHistoryFilter);
+        }
+
+        function filterUserHistory(type) {
+            currentHistoryFilter = type;
+            document.querySelectorAll('.h-tab-btn').forEach(b => b.classList.remove('filter-active'));
+            if(event && event.target) event.target.classList.add('filter-active');
+            
+            const list = document.getElementById('history-list-content');
+            const uid = auth.currentUser.uid;
+            
+            if(type === 'trades') {
+                db.collection('trades').where('userId', '==', uid).where('status', '==', 'CLOSED').onSnapshot(snap => {
+                    if(snap.empty) { list.innerHTML = '<p class="text-center mt-10 text-gray-600 text-[10px]">No closed trades</p>'; return; }
+                    let hhtml = '';
+                    snap.forEach(doc => {
+                        const t = doc.data();
+                        hhtml += `
+                        <div class="p-4 card-bg flex justify-between items-center border-l-4 border-gray-600">
+                            <div><p class="font-bold text-xs">${t.symbol} [${t.type}]</p><p class="text-[8px] text-gray-500">Lot: ${t.lot} | Closed</p></div>
+                            <p class="font-bold text-sm ${t.pnl >= 0 ? 'profit-pos' : 'profit-neg'}">₹${t.pnl.toFixed(2)}</p>
+                        </div>`;
+                    });
+                    list.innerHTML = hhtml;
+                });
+            } else {
+                const trxType = type === 'deposits' ? ['DEPOSIT', 'DEPOSIT_PENDING'] : ['WITHDRAW', 'WITHDRAW_REQUEST'];
+                db.collection('transactions').where('userId', '==', uid).where('type', 'in', trxType).onSnapshot(snap => {
+                    if(snap.empty) { list.innerHTML = `<p class="text-center mt-10 text-gray-600 text-[10px]">No ${type} history</p>`; return; }
+                    let hhtml = '';
+                    snap.forEach(doc => {
+                        const trx = doc.data();
+                        hhtml += `
+                        <div class="p-4 card-bg flex justify-between items-center border-l-4 ${trx.status === 'COMPLETED' ? 'border-green-500' : 'border-yellow-500'}">
+                            <div><p class="font-bold text-xs uppercase">${trx.type}</p><p class="text-[8px] text-gray-500">${trx.status}</p></div>
+                            <p class="font-bold text-sm text-white">₹${trx.amount.toFixed(2)}</p>
+                        </div>`;
+                    });
+                    list.innerHTML = hhtml;
+                });
+            }
+        }
+
+        async function closePosition(tradeId, finalPnl) {
+            if(!(await showPrompt("Close Trade", "Are you sure you want to close this position?"))) return;
+            const userRef = db.collection('users').doc(auth.currentUser.uid);
+            await db.collection('trades').doc(tradeId).update({ status: 'CLOSED', closePrice: 0, pnl: finalPnl });
+            await db.runTransaction(async (t) => {
+                const userDoc = await t.get(userRef);
+                t.update(userRef, { "wallet.equity": userDoc.data().wallet.equity + finalPnl });
+            });
+            // Log to History
+            await db.collection('transactions').add({
+                userId: auth.currentUser.uid, type: 'TRADE_PROFIT_LOSS', amount: finalPnl, 
+                status: 'COMPLETED', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // SHOW PnL CARD
+            const trade = activeTradesData.find(tr => tr.id === tradeId);
+            if(trade) {
+                document.getElementById('card-symbol').innerText = trade.symbol;
+                document.getElementById('card-type').innerText = trade.type + " POSITION";
+                document.getElementById('card-pnl').innerText = (finalPnl >= 0 ? "+" : "") + "₹" + finalPnl.toFixed(2);
+                document.getElementById('card-pnl').className = "text-5xl font-black " + (finalPnl >= 0 ? "text-green-500" : "text-red-500");
+                document.getElementById('card-acc').innerText = "ID: " + currentUserData.accountNumber;
+                document.getElementById('pnl-card-modal').classList.remove('hidden');
+            }
+
+            showToast("Trade Closed & Balance Updated", "success");
+        }
+
+        function setFilter(c, e) { currentFilter = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active')); e.classList.add('filter-active'); renderMarket(); }
+        function logout() { auth.signOut(); location.reload(); }
+
+        async function openDeposit() {
+            const amt = await showPrompt("Deposit Request", "Enter amount you wish to deposit ($):", true);
+            if(!amt || isNaN(amt)) return;
+            openServiceModal('Deposit Funds', `
+                <p class='mb-2'>Send <b>$${amt}</b> to the following USDT (TRC20) address:</p>
+                <p class='bg-black p-2 rounded text-[10px] break-all font-mono mb-4 text-yellow-500'>TGDj7ksL9xK2mP9s7Wv8E4Qx1z9A6B2C</p>
+                <p class='text-[10px]'>Take a screenshot and send it to our support chat for approval.</p>
+            `);
+        }
+
+        async function initiateWalletTransfer() {
+            const amt = parseFloat(document.getElementById('transfer-amount-input').value);
+            const now = Date.now();
+            const isActivated = currentUserData.walletActivation && currentUserData.walletActivation.status === 'ACTIVE' && (currentUserData.walletActivation.expiry > now);
+
+            if(!amt || amt <= 0) return showToast("Enter valid amount", "error");
+            if(amt > currentUserData.wallet.equity) return showToast("Insufficient Main Balance", "error");
+
+            if(isActivated) {
+                if(await showPrompt("Confirm Transfer", `Transfer ₹${amt} to your Withdrawal Wallet?`)) {
+                    await db.collection('transactions').add({
+                        userId: auth.currentUser.uid, type: 'WALLET_TRANSFER_REQUEST', 
+                        amount: amt, toPay: 0, status: 'AWAITING_APPROVAL', 
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    showToast("Transfer request submitted!", "success");
+                    switchPage('home');
+                }
+            } else {
+                if(await showPrompt("Wallet Activation", "A processing fee of ₹5,850 is required. Proceed to payment?")) {
+                    depositData.type = 'ACTIVATION';
+                    depositData.amount = amt;
+                    depositData.toPay = 5850;
+                    switchPage('deposit-step-2');
+                    showToast("Pay the activation fee to proceed.", "info");
+                }
+            }
+        }
+
+        function proceedToWithdrawMethods() {
+            const amt = parseFloat(document.getElementById('withdraw-amount-input').value);
+            const walletBal = currentUserData.wallet.withdrawalWallet || 0;
+            if(!amt || amt <= 0) return showToast("Enter amount", "error");
+            if(amt > walletBal) return showToast("Insufficient Wallet Balance", "error");
+            
+            switchPage('withdraw-step-2');
+        }
+
+        function openAddMethodModal() {
+            document.getElementById('add-method-modal').classList.remove('hidden');
+        }
+
+        function toggleMethodInputs() {
+            const type = document.getElementById('method-type-select').value;
+            document.querySelectorAll('.method-fields').forEach(f => f.classList.add('hidden'));
+            document.getElementById(type + '-inputs').classList.remove('hidden');
+        }
+
+        async function savePaymentMethod() {
+            const type = document.getElementById('method-type-select').value;
+            let details = {};
+            if(type === 'upi') details = { upiId: document.getElementById('new-upi-id').value };
+            else if(type === 'bank') details = { bank: document.getElementById('bank-name').value, acc: document.getElementById('bank-acc').value, ifsc: document.getElementById('bank-ifsc').value, holder: document.getElementById('bank-holder').value };
+            else details = { address: document.getElementById('crypto-addr').value };
+
+            const methods = currentUserData.paymentMethods || { upi: [], bank: [], crypto: [] };
+            if(!methods[type]) methods[type] = [];
+            methods[type].push(details);
+            
+            await db.collection('users').doc(auth.currentUser.uid).update({ paymentMethods: methods });
+            showToast("Payment account added!", "success");
+            document.getElementById('add-method-modal').classList.add('hidden');
+            showSavedMethods(type);
+        }
+
+        function showSavedMethods(type) {
+            const list = document.getElementById('saved-methods-list');
+            const methods = (currentUserData.paymentMethods && currentUserData.paymentMethods[type]) || [];
+            if(methods.length === 0) { list.innerHTML = `<p class='text-center text-[10px] text-gray-600 mt-4'>No saved ${type} accounts. Click + to add.</p>`; return; }
+            
+            let html = `<p class='text-[10px] text-gray-500 uppercase font-bold mb-3'>Saved ${type} Accounts</p>`;
+            methods.forEach((m, idx) => {
+                let info = type === 'upi' ? m.upiId : (type === 'bank' ? `${m.bank} - ${m.acc}` : m.address);
+                html += `
+                <div onclick="requestWithdrawFinal('${type}', ${idx})" class="p-4 card-bg flex justify-between items-center border border-gray-800 cursor-pointer mb-2">
+                    <p class="text-xs font-bold">${info}</p>
+                    <i class="fas fa-check-circle text-gray-700"></i>
+                </div>`;
+            });
+            list.innerHTML = html;
+        }
+
+        async function requestWithdrawFinal(type, idx) {
+            const amt = parseFloat(document.getElementById('withdraw-amount-input').value);
+            const method = currentUserData.paymentMethods[type][idx];
+            
+            if(await showPrompt("Confirm Withdrawal", `Request withdrawal of ₹${amt} to this account?`)) {
+                await db.collection('transactions').add({
+                    userId: auth.currentUser.uid, type: 'WITHDRAW_REQUEST', amount: amt, 
+                    method: type, details: method, status: 'PENDING',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                showToast("Withdrawal request submitted!", "success");
+                switchPage('home');
+            }
+        }
+
+        async function openWithdraw() { 
+            if(currentUserData.withdrawLocked) showToast("Account locked for verification. Contact support.", "error");
+            else if(currentUserData.kycStatus !== 'Verified') showToast("KYC verification required for withdrawals.", "error");
+            else {
+                switchPage('withdraw-step-1');
+            }
+        }
+
+        // NEW UI HELPER FUNCTIONS
+        function showToast(msg, type = "success") {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const colors = { success: 'border-green-500', error: 'border-red-500', info: 'border-yellow-500' };
+            
+            toast.className = `p-4 card-bg border-l-4 ${colors[type] || 'border-blue-500'} shadow-2xl min-w-[250px] toast-animate pointer-events-auto`;
+            toast.innerHTML = `<div class="flex items-center gap-3">
+                <i class="fas ${type==='success'?'fa-check-circle text-green-500':(type==='error'?'fa-exclamation-circle text-red-500':'fa-info-circle text-yellow-500')}"></i>
+                <div><p class="text-[10px] font-bold uppercase text-gray-400">${type}</p><p class="text-[11px] font-bold">${msg}</p></div>
+            </div>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.5s ease';
+                setTimeout(() => toast.remove(), 500);
+            }, 4000);
+        }
+
+        function showPrompt(title, msg, isPrompt = false) {
+            return new Promise((resolve) => {
+                const modal = document.getElementById('prompt-modal');
+                const input = document.getElementById('prompt-input');
+                document.getElementById('prompt-title').innerText = title;
+                document.getElementById('prompt-msg').innerText = msg;
+                input.classList.toggle('hidden', !isPrompt);
+                input.value = ""; modal.classList.remove('hidden');
+
+                const cleanup = (val) => { modal.classList.add('hidden'); resolve(val); };
+                document.getElementById('prompt-confirm').onclick = () => cleanup(isPrompt ? input.value : true);
+                document.getElementById('prompt-cancel').onclick = () => cleanup(null);
+            });
+        }
+
+        setInterval(renderMarket, 500);
+    </script>
+</body>
+</html>
