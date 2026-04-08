@@ -32,7 +32,8 @@
         #prompt-modal input::placeholder { color: #4b5563; }
         .modal-blur { backdrop-filter: blur(8px); }
         
-        input { outline: none; }
+        input { outline: none; } /* Ensure no default outline on focus */
+        #auth-btn { cursor: pointer; } /* Allow disabled state to control cursor/opacity */
     </style>
 </head>
 <body>
@@ -54,7 +55,7 @@
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase tracking-widest active:scale-95 transition">Sign In</button>
                 <p class="text-center mt-6 text-gray-500 text-xs">
                     <span id="auth-switch-text">New to the platform?</span> 
-                    <a href="javascript:void(0)" onclick="toggleAuth()" id="auth-toggle-btn" class="text-yellow-500 font-bold ml-1">Create Account</a>
+                    <a href="javascript:void(0)" onclick="toggleAuth(event)" id="auth-toggle-btn" class="text-yellow-500 font-bold ml-1">Create Account</a>
                 </p>
             </div>
         </div>
@@ -102,28 +103,29 @@
 
             <h3 class="text-xs font-bold text-gray-500 uppercase mb-3">Watchlist</h3>
             <div id="quick-market" class="space-y-3"></div>
-        </div>
 
-        <div id="market" class="section">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-bold">Markets</h2>
-                <span class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded font-bold uppercase">All Global Pairs</span>
+            <!-- MOVED MARKET SECTION CONTENT INSIDE HOME SECTION -->
+            <div id="home-market-content">
+                <div class="flex justify-between items-center mb-4 mt-8">
+                    <h2 class="text-xl font-bold">Global Markets</h2>
+                    <span class="text-[9px] bg-yellow-500/10 text-yellow-500 px-2 py-1 rounded font-bold uppercase">Live Rates</span>
+                </div>
+                <!-- Global Search Bar -->
+                <div class="mb-6 relative">
+                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
+                    <input type="text" id="market-search" oninput="searchMarket(this.value)" class="w-full bg-black border border-gray-800 p-4 pl-10 rounded-2xl text-sm focus:border-yellow-500 transition-all" placeholder="Search any symbol (e.g. AAPL, BTC, USDINR)...">
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
+                    <button onclick="setFilter('all', this)" class="filter-btn filter-active">All</button>
+                    <button onclick="setFilter('crypto', this)" class="filter-btn">Crypto</button>
+                    <button onclick="setFilter('forex', this)" class="filter-btn">Forex</button>
+                    <button onclick="setFilter('indices', this)" class="filter-btn">Indices</button>
+                    <button onclick="setFilter('metals', this)" class="filter-btn">Metals</button>
+                    <button onclick="setFilter('commodities', this)" class="filter-btn">Commodities</button>
+                    <button onclick="setFilter('etf', this)" class="filter-btn">ETF</button>
+                </div>
+                <div id="full-market-list" class="space-y-2"></div>
             </div>
-            <!-- Global Search Bar -->
-            <div class="mb-6 relative">
-                <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
-                <input type="text" id="market-search" oninput="searchMarket(this.value)" class="w-full bg-black border border-gray-800 p-4 pl-10 rounded-2xl text-sm focus:border-yellow-500 transition-all" placeholder="Search any symbol (e.g. AAPL, BTC, USDINR)...">
-            </div>
-            <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
-                <button onclick="setFilter('all', this)" class="filter-btn filter-active">All</button>
-                <button onclick="setFilter('crypto', this)" class="filter-btn">Crypto</button>
-                <button onclick="setFilter('forex', this)" class="filter-btn">Forex</button>
-                <button onclick="setFilter('indices', this)" class="filter-btn">Indices</button>
-                <button onclick="setFilter('metals', this)" class="filter-btn">Metals</button>
-                <button onclick="setFilter('commodities', this)" class="filter-btn">Commodities</button>
-                <button onclick="setFilter('etf', this)" class="filter-btn">ETF</button>
-            </div>
-            <div id="full-market-list" class="space-y-2"></div>
         </div>
 
         <div id="history" class="section">
@@ -193,19 +195,37 @@
                     <button onclick="changePanelLot(0.01)" class="w-10 h-10 text-gray-400 hover:text-white transition text-xl font-bold">+</button>
                 </div>
 
-                <!-- Market Selection Info -->
-                <div class="flex justify-between items-center mb-4 px-1">
-                    <div class="flex items-center gap-2 bg-gray-800/50 px-3 py-1.5 rounded-lg border border-gray-700">
-                        <span class="text-[10px] font-black text-white uppercase tracking-tighter italic">Market</span>
-                        <i class="fas fa-chevron-down text-[8px] text-gray-500"></i>
-                    </div>
-                    <p class="text-[10px] text-gray-500 italic">Fill at market price</p>
+                <!-- Order Type Selector -->
+                <div class="flex items-center justify-between mb-4 px-1">
+                    <select id="panel-order-type" onchange="toggleLimitInput()" class="bg-gray-800/50 text-[10px] font-black text-white uppercase px-3 py-2 rounded-lg border border-gray-700 outline-none">
+                        <option value="MARKET">Market Order</option>
+                        <option value="LIMIT">Limit Order</option>
+                    </select>
+                    <p id="order-type-desc" class="text-[10px] text-gray-500 italic">Fill at market price</p>
+                </div>
+
+                <!-- Limit Price Input (Hidden by default) -->
+                <div id="limit-price-container" class="hidden mb-4 px-1">
+                    <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Entry Price</p>
+                    <input type="number" id="limit-entry-price" step="0.01" class="w-full bg-black border border-yellow-500/50 p-3 rounded-lg text-sm font-bold text-yellow-500" placeholder="0.00">
                 </div>
 
                 <!-- SL/TP Checkbox -->
                 <div class="flex items-center gap-3 mb-6 px-1">
                     <input type="checkbox" id="panel-tpsl-toggle" class="w-4 h-4 rounded border-gray-700 bg-black text-yellow-500 focus:ring-0">
                     <label for="panel-tpsl-toggle" class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Take Profit / Stop Loss</label>
+                </div>
+
+                <!-- SL/TP Inputs (Hidden by default) -->
+                <div id="panel-tpsl-inputs" class="hidden grid grid-cols-2 gap-4 mb-6 px-1">
+                    <div class="flex-1">
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Stop Loss</p>
+                        <input type="number" id="stop-loss" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center text-red-500 font-bold" placeholder="0.00">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Take Profit</p>
+                        <input type="number" id="take-profit" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center text-green-500 font-bold" placeholder="0.00">
+                    </div>
                 </div>
 
                 <!-- Margin Info List -->
@@ -229,11 +249,11 @@
             </div>
 
             <!-- 4. Footer Info Tabs -->
-            <div class="flex gap-6 border-b border-gray-800 mb-4 px-2">
-                <p class="text-[10px] font-black text-yellow-500 border-b-2 border-yellow-500 pb-2 uppercase italic tracking-wider">Positions</p>
-                <p class="text-[10px] font-bold text-gray-600 pb-2 uppercase italic tracking-wider">Pending Orders</p>
+            <div class="flex gap-6 border-b border-gray-800 mb-4 px-2" id="trade-tabs">
+                <button onclick="switchTradeView('OPEN')" id="btn-view-open" class="text-[10px] font-black text-yellow-500 border-b-2 border-yellow-500 pb-2 uppercase italic tracking-wider">Positions</button>
+                <button onclick="switchTradeView('PENDING')" id="btn-view-pending" class="text-[10px] font-bold text-gray-600 pb-2 uppercase italic tracking-wider">Pending Orders</button>
             </div>
-            <div id="active-trades-list" class="space-y-3"></div>
+            <div id="active-trades-list" class="space-y-3 pb-20"></div>
         </div>
 
         <div id="profile" class="section">
@@ -571,12 +591,6 @@
             <div onclick="switchPage('home', this)" class="text-center nav-active cursor-pointer">
                 <i class="fas fa-home block text-xl mb-1"></i><span class="text-[9px] font-bold">HOME</span>
             </div>
-            <div onclick="switchPage('market', this)" class="text-center text-gray-500 cursor-pointer">
-                <i class="fas fa-chart-line block text-xl mb-1"></i><span class="text-[9px] font-bold">MARKET</span>
-            </div>
-            <div onclick="switchPage('support', this)" class="text-center text-gray-500 cursor-pointer">
-                <i class="fas fa-headset block text-xl mb-1"></i><span class="text-[9px] font-bold">SUPPORT</span>
-            </div>
             <div onclick="switchPage('history', this)" class="text-center text-gray-500 cursor-pointer">
                 <i class="fas fa-history block text-xl mb-1"></i><span class="text-[9px] font-bold">HISTORY</span>
             </div>
@@ -586,52 +600,48 @@
             <div onclick="switchPage('profile', this)" class="text-center text-gray-500 cursor-pointer">
                 <i class="fas fa-user block text-xl mb-1"></i><span class="text-[9px] font-bold">PROFILE</span>
             </div>
+            <div onclick="switchPage('support', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-headset block text-xl mb-1"></i><span class="text-[9px] font-bold">SUPPORT</span>
+            </div>
         </nav>
     </div>
 
-    <div id="trade-modal" class="hidden fixed inset-0 bg-black/95 z-[200] flex flex-col">
-        <div class="p-4 flex justify-between items-center border-b border-gray-800">
-            <h3 id="modal-symbol" class="font-bold">SYMBOL</h3>
-            <button onclick="closeTradeModal()" class="text-2xl">&times;</button>
-        </div>
-        <div class="flex-1">
-            <iframe id="tradingview-frame" src="" width="100%" height="100%" frameborder="0"></iframe>
-        </div>
-        <div class="bg-[#161b22] p-6 rounded-t-3xl shadow-2xl border-t border-gray-700">
+    <!-- EDIT TRADE MODAL -->
+    <div id="edit-trade-modal" class="hidden fixed inset-0 bg-black/95 z-[550] flex items-center justify-center p-6 modal-blur">
+        <div class="card-bg w-full max-w-sm p-6 border-yellow-500/20 shadow-2xl">
             <div class="flex justify-between items-center mb-6">
-                <p id="modal-price" class="text-2xl font-bold text-yellow-500">0.00</p>
-                <div class="flex items-center gap-2">
-                    <span class="text-[10px] text-gray-500">LOT:</span>
-                    <input type="number" id="lot-size" value="0.10" step="0.01" class="w-20 bg-black border border-gray-700 p-2 rounded font-bold text-center">
+                <h3 id="edit-trade-title" class="font-black text-yellow-500 italic uppercase">Modify Order</h3>
+                <button onclick="document.getElementById('edit-trade-modal').classList.add('hidden')" class="text-2xl text-gray-500">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <p id="edit-trade-details" class="text-[10px] text-gray-500 uppercase font-bold mb-4">BTCUSD | Buy | Lot: 0.10</p>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[9px] text-gray-500 uppercase mb-1">Stop Loss</p>
+                        <input type="number" id="edit-sl" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-xl text-xs text-center text-red-500 font-bold">
+                    </div>
+                    <div>
+                        <p class="text-[9px] text-gray-500 uppercase mb-1">Take Profit</p>
+                        <input type="number" id="edit-tp" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-xl text-xs text-center text-green-500 font-bold">
+                    </div>
                 </div>
             </div>
-            <div class="flex gap-4 mb-6">
-                <div class="flex-1">
-                    <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Stop Loss (SL)</p>
-                    <input type="number" id="stop-loss" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center" placeholder="None">
-                </div>
-                <div class="flex-1">
-                    <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Take Profit (TP)</p>
-                    <input type="number" id="take-profit" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center" placeholder="None">
+
+            <div class="border-t border-gray-800 pt-6 mb-6">
+                <p class="text-[9px] text-gray-500 uppercase font-bold mb-2">Partial Close (Lot)</p>
+                <div class="flex gap-2">
+                    <input type="number" id="partial-close-lot" step="0.01" value="0.01" class="flex-1 bg-black border border-gray-700 p-3 rounded-xl text-sm font-bold text-center">
+                    <button onclick="handlePartialClose()" class="bg-red-600/20 text-red-500 border border-red-500/50 px-4 rounded-xl font-bold text-[10px] uppercase">Close Part</button>
                 </div>
             </div>
-            <div class="flex gap-4">
-                <button onclick="executeTrade('SELL')" class="flex-1 bg-red-600 py-4 rounded-xl font-bold uppercase tracking-widest">Sell</button>
-                <button onclick="executeTrade('BUY')" class="flex-1 bg-green-600 py-4 rounded-xl font-bold uppercase tracking-widest">Buy</button>
-            </div>
+
+            <button onclick="handleUpdateTrade()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">Save Changes</button>
         </div>
     </div>
 
     <!-- GENERIC SERVICE MODAL -->
     <div id="service-modal" class="hidden fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-6">
-        <div class="card-bg w-full max-w-sm p-6">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="service-title" class="font-bold text-yellow-500 uppercase italic">Service</h3>
-                <button onclick="closeServiceModal()" class="text-xl">&times;</button>
-            </div>
-            <div id="service-content" class="text-sm text-gray-400 mb-6"></div>
-            <button onclick="closeServiceModal()" class="w-full bg-yellow-500 text-black py-3 rounded-xl font-bold uppercase text-[10px]">Close</button>
-        </div>
     </div>
 
     <!-- CUSTOM NOTIFICATION (TOAST) CONTAINER -->
@@ -699,7 +709,7 @@
         // Pairs updated via Live WebSocket (should not have random fluctuations)
         const WS_SYMBOLS = [
             'BTCUSD', 'ETHUSD', 'XAUUSD', 'SOLUSD', 'DOGEUSD', 'BNBUSD', 
-            'XRPUSD', 'LTCUSD', 'ADAUSD', 'LINKUSD', 'TRXUSD', 'DOTUSD', 'MATICUSD'
+            'XRPUSD', 'LTCUSD', 'ADAUSD', 'LINKUSD', 'TRXUSD', 'DOTUSD', 'MATICUSD', 'PAXGUSD' // PAXG for Gold
         ];
 
         let isLogin = true;
@@ -711,7 +721,11 @@
         let currentFilter = 'all';
         let priceSocket;
         // GLOBAL DEPOSIT STATE
+        let lastTradesFingerprint = ""; // To prevent unnecessary re-renders
+        let currentTradePrice = 0; // To store the current mid-price for the active trade panel symbol
         let managedUserId = null;
+        let currentEditTradeId = null;
+        let currentTradeView = 'OPEN';
         let depositData = { amount: 0, coupon: null, toPay: 0, method: '', currentTrxId: null, type: 'DEPOSIT' };
 
         async function applyCoupon() {
@@ -812,35 +826,17 @@
         function renderMarketList(items) {
             const flist = document.getElementById('full-market-list');
             const qlist = document.getElementById('quick-market');
-            const modalSymbol = document.getElementById('modal-symbol').innerText;
-            const isModalOpen = !document.getElementById('trade-modal').classList.contains('hidden');
             
             let fhtml = '';
 
             items.forEach((item, idx) => {
-                // Only fluctuate if NOT updated by Live WebSocket
-                if(!WS_SYMBOLS.includes(item.s)) {
-                    let fluctuation = 0;
-                    if(item.cat === 'forex') fluctuation = (Math.random() * 0.0002 - 0.0001); // Realistic Forex move
-                    else if(item.cat === 'metals') fluctuation = (Math.random() * 0.1 - 0.05); // Smooth Gold move
-                    else fluctuation = (Math.random() * 1 - 0.5); // Indices/Others move
-                    
-                    item.p += fluctuation;
-                }
-
-                // Live update the price in the Trade Modal if it's open for this symbol
-                if(isModalOpen && modalSymbol === item.s) {
-                    const precision = item.cat === 'forex' ? 4 : 2;
-                    document.getElementById('modal-price').innerText = item.p.toFixed(precision);
-                }
-
                 const card = `
-                <div onclick="openTradeModal('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition mb-2">
+                <div onclick="setupTradePanel('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition mb-2">
                     <div>
                         <p class="font-bold text-sm">${item.s}</p>
-                        <p class="text-[9px] text-gray-500 uppercase font-bold">${item.n}</p>
+                        <p class="text-[9px] text-gray-500 uppercase font-bold">${item.n || 'N/A'}</p>
                     </div>
-                    <p id="list-price-${item.s}" class="font-mono font-bold text-green-500 text-sm">${item.p > 0 ? item.p.toFixed(item.cat === 'forex' ? 4 : 2) : 'FETCHING...'}</p>
+                    <p id="list-price-${item.s}" class="font-mono font-bold text-green-500 text-sm">${item.p > 0 ? item.p.toFixed(item.cat === 'forex' ? 4 : 2) : 'Fetching...'}</p>
                 </div>`;
                 fhtml += card;
             });
@@ -849,9 +845,9 @@
             // Quick market (Watchlist) always uses top of main list
             if(currentFilter === 'all' && items === marketItems) {
                 let qhtml = '';
-                marketItems.slice(0, 6).forEach(item => {
+                marketItems.slice(0, 6).forEach(item => { // Display top 6 for quick market
                     qhtml += `
-                    <div onclick="openTradeModal('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition">
+                    <div onclick="setupTradePanel('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition">
                         <div><p class="font-bold text-sm">${item.s}</p><p class="text-[9px] text-gray-500 font-bold">${item.n}</p></div>
                         <p class="font-mono font-bold text-green-500 text-sm">${item.p.toFixed(2)}</p>
                     </div>`;
@@ -862,13 +858,25 @@
             updateLivePnL();
         }
 
+        function getSpread(symbol) {
+            const item = marketItems.find(m => m.s === symbol);
+            if (!item) return 0;
+
+            switch (item.cat) {
+                case 'forex': return 0.0002; // 2 pips for forex
+                case 'metals': return 0.05; // 5 cents for metals
+                case 'crypto': return item.p * 0.0005; // 0.05% of price for crypto
+                default: return 0.1; // Default for others
+            }
+        }
+
         // REAL-TIME API (BINANCE WS)
         function initPriceSocket() {
             // Tracking 10+ major assets via Binance WebSocket
             priceSocket = new WebSocket('wss://stream.binance.com:9443/ws/btcusdt@ticker/ethusdt@ticker/paxgusdt@ticker/solusdt@ticker/dogeusdt@ticker/bnbusdt@ticker/xrpusdt@ticker/ltcusdt@ticker/adausdt@ticker/linkusdt@ticker');
             priceSocket.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                let mappedSymbol;
+                let mappedSymbol; // Declare mappedSymbol
                 
                 const mapping = {
                     'BTCUSDT': 'BTCUSD', 'ETHUSDT': 'ETHUSD', 'PAXGUSDT': 'XAUUSD',
@@ -880,14 +888,12 @@
                 const item = marketItems.find(m => m.s === mappedSymbol);
                 if(item) {
                     item.p = parseFloat(data.c);
+                    if (mappedSymbol === currentPanelSymbol) {
+                        currentTradePrice = item.p; // Update current trade price for panel
+                        setPanelSide(activePanelSide); // Refresh panel prices
+                    }
                     // Immediate PnL update for open trades
                     updateLivePnL();
-
-                    const modalSymbol = document.getElementById('modal-symbol').innerText;
-                    if(modalSymbol === mappedSymbol) {
-                        const precision = item.cat === 'forex' ? 4 : 2;
-                        document.getElementById('modal-price').innerText = item.p.toFixed(precision);
-                    }
                 }
             };
         }
@@ -982,6 +988,7 @@
                 loadTrades(user.uid);
                 loadHistory(user.uid);
                 loadSupportTickets(user.uid);
+                setupTradePanel('BTCUSD'); // Initialize trade panel with a default symbol
                 initPriceSocket();
             } else {
                 document.getElementById('auth-container').classList.remove('hidden');
@@ -989,11 +996,29 @@
             }
         });
 
+        function toggleLimitInput() {
+            const type = document.getElementById('panel-order-type').value;
+            const container = document.getElementById('limit-price-container');
+            const desc = document.getElementById('order-type-desc');
+            container.classList.toggle('hidden', type === 'MARKET');
+            desc.innerText = type === 'MARKET' ? "Fill at market price" : "Fill at specific price";
+        }
+
+        // Toggle SL/TP inputs visibility
+        document.getElementById('panel-tpsl-toggle').addEventListener('change', function() {
+            document.getElementById('panel-tpsl-inputs').classList.toggle('hidden', !this.checked);
+        });
+
         // CORE UI LOGIC
-        function toggleAuth() {
+        function toggleAuth(e) {
+            if(e) e.preventDefault(); // Prevent default link behavior
             isLogin = !isLogin;
             document.getElementById('auth-title').innerText = isLogin ? 'Sign In' : 'Sign Up';
             if(document.getElementById('register-fields')) document.getElementById('register-fields').classList.toggle('hidden', isLogin);
+            document.getElementById('user-email').value = '';
+            document.getElementById('user-password').value = '';
+            if(document.getElementById('user-name')) document.getElementById('user-name').value = '';
+            if(document.getElementById('reg-referral-code')) document.getElementById('reg-referral-code').value = '';
             document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
             document.getElementById('auth-switch-text').innerText = isLogin ? 'New to the platform?' : 'Already have an account?';
             document.getElementById('auth-toggle-btn').innerText = isLogin ? 'Create Account' : 'Sign In';
@@ -1002,21 +1027,30 @@
         async function handleAuth() {
             const email = document.getElementById('user-email').value;
             const pass = document.getElementById('user-password').value;
+            const btn = document.getElementById('auth-btn');
+            const originalText = btn.innerText;
+
+            if(!email || !pass) return showToast("Please enter email and password", "error");
+            if(!isLogin && !document.getElementById('user-name').value) return showToast("Please enter your full name", "error");
+
             try {
+                btn.innerText = "Processing...";
+                btn.disabled = true; // Disable button during processing
                 if(isLogin) await auth.signInWithEmailAndPassword(email, pass);
                 else {
                     const res = await auth.createUserWithEmailAndPassword(email, pass);
                     const myRefCode = email.split('@')[0].toUpperCase() + Math.floor(100 + Math.random() * 900);
                     await db.collection('users').doc(res.user.uid).set({
                         uid: res.user.uid, name: document.getElementById('user-name').value, email,
-                        accountNumber: Math.floor(Math.random() * 9000000) + 1000000,
-                        wallet: { equity: 1000.00, withdrawalWallet: 0 }, 
+                        accountNumber: Math.floor(Math.random() * 9000000) + 1000000, // Generate 7-digit account number
+                        wallet: { equity: 0, withdrawalWallet: 0 }, // Initial equity set to 0
                         withdrawLocked: false, kycStatus: 'Pending',
                         myReferralCode: myRefCode,
                         referredBy: document.getElementById('reg-referral-code').value.toUpperCase() || null
                     });
                 }
             } catch(e) { showToast(e.message, "error"); }
+            finally { btn.innerText = originalText; btn.disabled = false; } // Re-enable button
         }
 
         async function sendSupportTicket() {
@@ -1110,6 +1144,7 @@
             showToast("Reply sent", "success");
         }
 
+        // Function to update the Buy/Sell prices on the main trade panel
         function setPanelSide(side) {
             activePanelSide = side;
             const sTab = document.getElementById('tab-sell');
@@ -1117,19 +1152,34 @@
             const btn = document.getElementById('panel-confirm-btn');
             const sPrice = document.getElementById('panel-sell-price');
             const bPrice = document.getElementById('panel-buy-price');
+            const spreadEl = document.getElementById('panel-spread');
 
-            if (side === 'SELL') {
+            const item = marketItems.find(m => m.s === currentPanelSymbol);
+            if (!item) {
+                sPrice.innerText = 'N/A';
+                bPrice.innerText = 'N/A';
+                spreadEl.innerText = 'N/A';
+                return;
+            }
+
+            const currentMidPrice = item.p;
+            const spread = getSpread(currentPanelSymbol);
+            const buyPrice = currentMidPrice + spread; // Ask price
+            const sellPrice = currentMidPrice - spread; // Bid price
+            const precision = item.cat === 'forex' ? 4 : 2;
+
+            sPrice.innerText = sellPrice.toFixed(precision);
+            bPrice.innerText = buyPrice.toFixed(precision);
+            spreadEl.innerText = (spread * (item.cat === 'forex' ? 10000 : 1)).toFixed(item.cat === 'forex' ? 0 : 2); // Display spread in pips or value
+
+            if (side === 'SELL') { // UI for SELL selected
                 sTab.className = "flex-1 p-3 transition-all bg-red-600/20 border-b-2 border-red-500";
                 bTab.className = "flex-1 p-3 transition-all bg-black/20 grayscale opacity-50";
-                sPrice.className = "text-sm font-mono font-bold text-white font-black";
-                bPrice.className = "text-sm font-mono font-bold text-gray-500";
                 btn.innerText = "Confirm Sell";
                 btn.className = "w-full bg-red-600 text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-red-500/10 active:scale-[0.98] transition-all";
             } else {
                 bTab.className = "flex-1 p-3 transition-all bg-green-600/20 border-b-2 border-green-500";
                 sTab.className = "flex-1 p-3 transition-all bg-black/20 grayscale opacity-50";
-                bPrice.className = "text-sm font-mono font-bold text-white font-black";
-                sPrice.className = "text-sm font-mono font-bold text-gray-500";
                 btn.innerText = "Confirm Buy";
                 btn.className = "w-full bg-green-500 text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-lg shadow-green-500/10 active:scale-[0.98] transition-all";
             }
@@ -1147,12 +1197,37 @@
             input.value = current.toFixed(2);
         }
 
+        // This function is called when "Confirm Buy/Sell" is clicked on the main trade panel
         async function executeTradeDirect(type) {
+            const orderType = document.getElementById('panel-order-type').value;
             const lot = parseFloat(document.getElementById('panel-lot-size').value);
             const symbol = currentPanelSymbol;
-            const price = parseFloat(document.getElementById(type === 'BUY' ? 'panel-buy-price' : 'panel-sell-price').innerText);
+            
+            let price;
+            if(orderType === 'MARKET') {
+                price = parseFloat(document.getElementById(type === 'BUY' ? 'panel-buy-price' : 'panel-sell-price').innerText);
+            } else {
+                price = parseFloat(document.getElementById('limit-entry-price').value);
+            }
             
             if(!price || price <= 0) return showToast("Price Syncing... please wait", "error");
+
+            // Get SL/TP values from the main panel
+            const slToggle = document.getElementById('panel-tpsl-toggle').checked;
+            const sl = slToggle ? parseFloat(document.getElementById('stop-loss').value) : null;
+            const tp = slToggle ? parseFloat(document.getElementById('take-profit').value) : null;
+
+            // SL/TP VALIDATION
+            if (slToggle) {
+                if (isNaN(sl) || isNaN(tp)) return showToast("Please enter SL and TP values", "error");
+                if (type === 'BUY') {
+                    if (tp <= price) return showToast("Buy TP must be above entry price", "error");
+                    if (sl >= price) return showToast("Buy SL must be below entry price", "error");
+                } else {
+                    if (tp >= price) return showToast("Sell TP must be below entry price", "error");
+                    if (sl <= price) return showToast("Sell SL must be above entry price", "error");
+                }
+            }
 
             const requiredMargin = (price * lot * 100) / 500;
             if(currentUserData.wallet.equity < requiredMargin) {
@@ -1162,9 +1237,12 @@
 
             await db.collection('trades').add({
                 userId: auth.currentUser.uid, symbol, type, lot,
-                entryPrice: price, status: 'OPEN', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                entryPrice: price, stopLoss: sl, takeProfit: tp, 
+                status: orderType === 'MARKET' ? 'OPEN' : 'PENDING', 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            showToast(`${type} Order Executed at ${price}`, "success");
+
+            showToast(`${orderType} ${type} Order Placed at ${price}`, "success");
         }
 
         function switchPage(p, el) {
@@ -1238,71 +1316,41 @@
             document.getElementById('service-modal').classList.add('hidden');
         }
 
-        async function openTradeModal(s) {
-            document.getElementById('modal-symbol').innerText = s;
-            let item = marketItems.find(m => m.s === s) || searchResults.find(m => m.s === s);
-            
-            // Sync with Trades Panel
-            currentPanelSymbol = s;
+        // This function sets up the main #trades panel
+        async function setupTradePanel(s) {
+            currentPanelSymbol = s; // Set the global current symbol for the panel
+
+            // Navigate to the trades section
+            switchPage('trades', document.querySelector('nav div[onclick*="trades"]'));
+
+            // Update chart title and iframe
             document.getElementById('panel-chart-title').innerText = s + " Chart";
             document.getElementById('panel-tradingview-frame').src = `https://s.tradingview.com/widgetembed/?symbol=${s}&interval=1&theme=dark`;
 
+            let item = marketItems.find(m => m.s === s) || searchResults.find(m => m.s === s);
+            
             // If it's a new custom symbol, add it to our tracking
             if(!item) {
                 item = { s: s, n: 'Global Asset', p: 0, cat: 'other' };
                 marketItems.push(item);
             }
 
-            // INSTANT PRICE FETCH (Fixes "Old Price" issue)
-            // We try to fetch from Binance API for most cryptos/pairs
+            // Fetch current price for the selected symbol
             try {
                 const cleanSymbol = s.replace('USD', 'USDT');
                 const response = await fetch(`https://api.binance.com/api/v3/ticker/price?symbol=${cleanSymbol}`);
                 const data = await response.json();
-                if(data.price) item.p = parseFloat(data.price);
+                if(data.price) {
+                    item.p = parseFloat(data.price);
+                    currentTradePrice = item.p; // Update global current trade price
+                }
             } catch (e) {
-                // Fallback to current memory price if API fails
-                if(item.p === 0) item.p = 100.00; 
+                console.warn(`Could not fetch live price for ${s} from Binance. Using static/memory price.`, e);
+                if(item.p === 0) item.p = 100.00; // Fallback if no price at all
+                currentTradePrice = item.p;
             }
-
-            if(!item) return;
             
-            const precision = item?.cat === 'forex' ? 4 : 2;
-            document.getElementById('modal-price').innerText = item.p.toFixed(precision);
-            document.getElementById('stop-loss').value = '';
-            document.getElementById('take-profit').value = '';
-            
-            const theme = document.getElementById('chart-theme-toggle').checked ? 'light' : 'dark';
-            // Load custom symbol in TradingView
-            document.getElementById('tradingview-frame').src = `https://s.tradingview.com/widgetembed/?symbol=${s}&interval=1&theme=${theme}&style=1`;
-            document.getElementById('trade-modal').classList.remove('hidden');
-        }
-
-        function closeTradeModal() { document.getElementById('trade-modal').classList.add('hidden'); }
-
-        async function executeTrade(type) {
-            const lot = document.getElementById('lot-size').value;
-            const symbol = document.getElementById('modal-symbol').innerText;
-            const price = parseFloat(document.getElementById('modal-price').innerText);
-            const sl = document.getElementById('stop-loss').value;
-            const tp = document.getElementById('take-profit').value;
-            
-            // MARGIN CHECK (1:100 Leverage)
-            const requiredMargin = (price * parseFloat(lot)) / 100;
-            if(currentUserData.wallet.equity < requiredMargin) {
-                showToast("Insufficient Margin! Deposit funds to continue.", "error");
-                return;
-            }
-
-            await db.collection('trades').add({
-                userId: auth.currentUser.uid, symbol, type, lot: parseFloat(lot),
-                entryPrice: price, 
-                stopLoss: sl ? parseFloat(sl) : null,
-                takeProfit: tp ? parseFloat(tp) : null,
-                status: 'OPEN', timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            showToast("Order Dispatched to Liquidity Pool.", "success");
-            closeTradeModal();
+            setPanelSide(activePanelSide); // Update buy/sell prices on the panel
         }
 
         async function toggle2FA() {
@@ -1320,65 +1368,195 @@
         }
 
         function loadTrades(uid) {
-            db.collection('trades').where('userId', '==', uid).where('status', '==', 'OPEN').onSnapshot(snap => {
+            db.collection('trades').where('userId', '==', uid).where('status', 'in', ['OPEN', 'PENDING']).onSnapshot(snap => {
                 activeTradesData = [];
                 snap.forEach(doc => activeTradesData.push({ id: doc.id, ...doc.data() }));
+                
+                // Background check for SL/TP hits every time data updates
+                checkAutoExecution();
                 updateLivePnL();
             });
         }
 
         function updateLivePnL() {
-            const list = document.getElementById('active-trades-list');
-            if(!list) return;
-            if(activeTradesData.length === 0) {
-                list.innerHTML = `
-                    <div class="text-center mt-20">
-                        <i class="fas fa-box-open text-gray-800 text-5xl mb-4"></i>
-                        <p class="text-gray-500 text-xs mb-6 uppercase tracking-widest">No Active Positions</p>
-                        <button onclick="switchPage('market')" class="bg-yellow-500 text-black px-8 py-3 rounded-xl font-black text-[10px] uppercase">Explore Markets</button>
-                    </div>
-                `;
-                return;
-            }
-            let html = '';
-            activeTradesData.forEach(t => {
-                const live = marketItems.find(m => m.s === t.symbol)?.p || t.entryPrice;
-                // Multiplier adjusted for INR pips
-                let pnl = t.manualPnL !== undefined ? t.manualPnL : (t.type === 'BUY' ? (live - t.entryPrice) : (t.entryPrice - live)) * t.lot * 1000;
-                
-                html += `
-                <div class="p-4 card-bg flex justify-between items-center border-l-4 ${t.type === 'BUY' ? 'border-green-500' : 'border-red-500'}">
-                    <div><p class="font-bold text-xs">${t.symbol} <span class="bg-black px-1 rounded text-[8px] ml-1 uppercase">${t.type}</span></p>
-                    <p class="text-[9px] text-gray-500">Entry: ${t.entryPrice.toFixed(2)} | Lot: ${t.lot}</p>
-                    <p class="text-[8px] text-gray-600 mt-1 uppercase">SL: ${t.stopLoss || '---'} | TP: ${t.takeProfit || '---'}</p>
+    const list = document.getElementById('active-trades-list');
+    if (!list) return;
+
+    let totalPnl = 0;
+    let totalUsedMargin = 0;
+
+    const filteredData = activeTradesData.filter(t => t.status === currentTradeView);
+
+    // Generate a fingerprint of current IDs and View to check if structure changed
+    const currentFingerprint = currentTradeView + "_" + filteredData.map(t => t.id).join("|");
+    const structureChanged = currentFingerprint !== lastTradesFingerprint;
+
+    if (filteredData.length === 0) {
+        lastTradesFingerprint = currentFingerprint;
+        list.innerHTML = `
+            <div class="text-center mt-20">
+                <i class="fas fa-box-open text-gray-800 text-5xl mb-4"></i>
+                <p class="text-gray-500 text-xs mb-6 uppercase tracking-widest">No ${currentTradeView === 'OPEN' ? 'Open Positions' : 'Pending Orders'}</p>
+                <button onclick="switchPage('home', document.querySelector('nav div[onclick*=\'home\']'))" class="bg-yellow-500 text-black px-8 py-3 rounded-xl font-black text-[10px] uppercase">Explore Markets</button>
+            </div>
+        `;
+        if (currentUserData) {
+            document.getElementById('user-equity').innerText = "₹" + currentUserData.wallet.equity.toFixed(2);
+        }
+        return;
+    }
+
+    filteredData.forEach(t => {
+        const item = marketItems.find(m => m.s === t.symbol);
+        const liveMid = item?.p || t.entryPrice;
+        const spread = getSpread(t.symbol);
+
+        // Calculate realistic exit prices for PnL
+        const exitPrice = t.type === 'BUY' ? (liveMid - spread) : (liveMid + spread);
+
+        // Standardized multipliers
+        let multiplier = 100;
+        if (item?.cat === 'forex') multiplier = 10000;
+        if (item?.cat === 'crypto') multiplier = 1;
+        if (item?.cat === 'metals') multiplier = 100;
+
+        let pnl = 0;
+        if(t.status === 'OPEN') {
+            pnl = t.manualPnL !== undefined ? t.manualPnL : (t.type === 'BUY' ? (exitPrice - t.entryPrice) : (t.entryPrice - exitPrice)) * t.lot * multiplier;
+            totalPnl += pnl;
+        }
+
+        totalUsedMargin += (t.entryPrice * t.lot * (item?.cat === 'forex' ? 10 : 1)) / 500;
+
+        // Only update innerHTML if trade list or view changed. Otherwise, update text nodes directly.
+        if (structureChanged) {
+            const html = filteredData.map(trade => {
+                const isBuy = trade.type === 'BUY';
+                return `
+                <div class="p-4 card-bg flex justify-between items-center border-l-4 ${isBuy ? 'border-green-500' : 'border-red-500'}">
+                    <div><p class="font-bold text-xs">${trade.symbol} <span class="bg-black px-1 rounded text-[8px] ml-1 uppercase">${trade.type}</span></p>
+                    <p class="text-[9px] text-gray-500">Entry: ${trade.entryPrice.toFixed(item?.cat === 'forex' ? 4 : 2)} | Lot: ${trade.lot}</p>
+                    <p class="text-[8px] text-gray-600 mt-1 uppercase">SL: ${trade.stopLoss || '---'} | TP: ${trade.takeProfit || '---'}</p>
                     </div>
                     <div class="text-right">
-                        <p class="font-bold text-sm ${pnl >= 0 ? 'profit-pos' : 'profit-neg'}">₹${pnl.toFixed(2)}</p>
-                        <button onclick="closePosition('${t.id}', ${pnl})" class="text-[8px] bg-red-900/30 text-red-500 px-2 py-1 rounded mt-1 font-bold">CLOSE</button>
+                        <p id="pnl-val-${trade.id}" class="font-bold text-sm ${trade.status === 'OPEN' ? 'profit-pos' : 'text-yellow-500'}"></p>
+                        <div class="flex gap-1 mt-1">
+                            <button type="button" onclick="openEditTradeModal('${trade.id}')" class="text-[8px] bg-blue-900/30 text-blue-400 px-2 py-1 rounded font-bold uppercase">Edit</button>
+                            <button type="button" id="close-btn-${trade.id}" class="text-[8px] bg-red-900/30 text-red-500 px-2 py-1 rounded font-bold uppercase">Cancel</button>
+                        </div>
                     </div>
                 </div>`;
-            });
+            }).join('');
             list.innerHTML = html;
-
-            // Update Terminal Stats
-            if(marginEl) marginEl.innerText = "₹" + usedMargin.toFixed(2);
-            if(levelEl && currentUserData) {
-                const equity = currentUserData.wallet.equity + totalPnl;
-                const mLevel = usedMargin > 0 ? (equity / usedMargin) * 100 : 100;
-                levelEl.innerText = Math.round(mLevel) + "%";
-                levelEl.className = mLevel < 50 ? "text-[11px] font-bold text-red-500" : "text-[11px] font-bold text-green-500";
-            }
+            lastTradesFingerprint = currentFingerprint;
         }
 
-        let currentHistoryFilter = 'trades';
-        function loadHistory(uid) {
-            filterUserHistory(currentHistoryFilter);
+        // Always update the values and colors without re-rendering the whole button
+        const pnlEl = document.getElementById(`pnl-val-${t.id}`);
+        const closeBtn = document.getElementById(`close-btn-${t.id}`);
+        if (pnlEl) {
+            pnlEl.innerText = t.status === 'OPEN' ? '₹' + pnl.toFixed(2) : 'PENDING';
+            if (t.status === 'OPEN') pnlEl.className = `font-bold text-sm ${pnl >= 0 ? 'profit-pos' : 'profit-neg'}`;
+        }
+        if (closeBtn) {
+            closeBtn.onclick = () => { t.status === 'OPEN' ? closePosition(t.id, pnl) : cancelPendingOrder(t.id) };
+        }
+    });
+
+    // MARGIN CALL LOGIC
+    if (currentUserData) {
+        const currentEquity = currentUserData.wallet.equity + totalPnl;
+        
+        // Real-time update of header equity
+        document.getElementById('user-equity').innerText = "₹" + currentEquity.toFixed(2);
+        document.getElementById('user-equity').className = currentEquity < 0 ? "text-4xl font-black mb-6 text-red-500" : "text-4xl font-black mb-6";
+
+        if (currentEquity <= 0) {
+            showToast("MARGIN CALL: Positions liquidated due to zero equity.", "error");
+            activeTradesData.forEach(t => {
+                if(t.status === 'OPEN') {
+                    const item = marketItems.find(m => m.s === t.symbol);
+                    const liveMid = item?.p || t.entryPrice;
+                    const spread = getSpread(t.symbol);
+                    const exitPrice = t.type === 'BUY' ? (liveMid - spread) : (liveMid + spread);
+                    let multiplier = 100;
+                    if (item?.cat === 'forex') multiplier = 10000;
+                    if (item?.cat === 'crypto') multiplier = 1;
+                    if (item?.cat === 'metals') multiplier = 100;
+                    const pnl = t.manualPnL !== undefined ? t.manualPnL : (t.type === 'BUY' ? (exitPrice - t.entryPrice) : (t.entryPrice - exitPrice)) * t.lot * multiplier;
+                    closePosition(t.id, pnl, true); 
+                }
+            });
+        }
+    }
+
+    // Update Trades Tab Stats
+    const marginEl = document.getElementById('display-margin');
+    const levelEl = document.getElementById('display-margin-level');
+    if (marginEl) marginEl.innerText = "₹" + totalUsedMargin.toFixed(2);
+    if (levelEl && currentUserData) {
+        const equity = currentUserData.wallet.equity + totalPnl;
+        const mLevel = totalUsedMargin > 0 ? (equity / totalUsedMargin) * 100 : 100;
+        levelEl.innerText = Math.round(mLevel) + "%";
+        levelEl.className = mLevel < 50 ? "text-[11px] font-bold text-red-500" : "text-[11px] font-bold text-green-500";
+    }
         }
 
-        function filterUserHistory(type) {
+        // Automation Engine for SL/TP and Pending Orders
+        async function checkAutoExecution() {
+            activeTradesData.forEach(async t => {
+                const item = marketItems.find(m => m.s === t.symbol);
+                if (!item || item.p === 0) return;
+                
+                const liveMid = item.p;
+                const spread = getSpread(t.symbol);
+                
+                if (t.status === 'OPEN') {
+                    // EXIT PRICE LOGIC (Ask for Sell, Bid for Buy)
+                    const exitPrice = t.type === 'BUY' ? (liveMid - spread) : (liveMid + spread);
+                    
+                    let shouldClose = false;
+                    if (t.type === 'BUY') {
+                        if (t.takeProfit && exitPrice >= t.takeProfit) shouldClose = true;
+                        if (t.stopLoss && exitPrice <= t.stopLoss) shouldClose = true;
+                    } else {
+                        if (t.takeProfit && exitPrice <= t.takeProfit) shouldClose = true;
+                        if (t.stopLoss && exitPrice >= t.stopLoss) shouldClose = true;
+                    }
+
+                    if (shouldClose) {
+                        // Calculate final PnL at trigger price
+                        const multiplier = item.cat === 'forex' ? 10000 : (item.cat === 'crypto' ? 1 : 100);
+                        const finalPnl = (t.type === 'BUY' ? (exitPrice - t.entryPrice) : (t.entryPrice - exitPrice)) * t.lot * multiplier;
+                        closePosition(t.id, finalPnl, true); // True means automatic execution
+                    }
+                } else if (t.status === 'PENDING') {
+                    // PENDING -> OPEN trigger
+                    if (Math.abs(liveMid - t.entryPrice) <= spread) {
+                        await db.collection('trades').doc(t.id).update({ status: 'OPEN', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                        showToast(`Pending order for ${t.symbol} is now ACTIVE.`, "info");
+                    }
+                }
+            });
+        }
+
+        function switchTradeView(view) {
+            currentTradeView = view;
+            document.getElementById('btn-view-open').className = view === 'OPEN' ? "text-[10px] font-black text-yellow-500 border-b-2 border-yellow-500 pb-2 uppercase italic tracking-wider" : "text-[10px] font-bold text-gray-600 pb-2 uppercase italic tracking-wider";
+            document.getElementById('btn-view-pending').className = view === 'PENDING' ? "text-[10px] font-black text-yellow-500 border-b-2 border-yellow-500 pb-2 uppercase italic tracking-wider" : "text-[10px] font-bold text-gray-600 pb-2 uppercase italic tracking-wider";
+            updateLivePnL();
+        }
+
+        let currentHistoryFilter = 'trades'; // Default filter
+        function loadHistory(uid) { filterUserHistory(currentHistoryFilter); }
+
+        function filterUserHistory(type, e = null) { // Added 'e' parameter for event
             currentHistoryFilter = type;
             document.querySelectorAll('.h-tab-btn').forEach(b => b.classList.remove('filter-active'));
-            if(event && event.target) event.target.classList.add('filter-active');
+            
+            // Use 'e.target' if event is passed, otherwise find the button by its onclick attribute
+            const target = e ? e.target : document.querySelector(`.h-tab-btn[onclick*="filterUserHistory('${currentHistoryFilter}')"]`);
+            if(target) target.classList.add('filter-active');
             
             const list = document.getElementById('history-list-content');
             const uid = auth.currentUser.uid;
@@ -1415,13 +1593,14 @@
             }
         }
 
-        async function closePosition(tradeId, finalPnl) {
-            if(!(await showPrompt("Close Trade", "Are you sure you want to close this position?"))) return;
+        async function closePosition(tradeId, finalPnl, auto = false) {
+            if(!auto && !(await showPrompt("Close Trade", "Are you sure you want to close this position?"))) return;
             const userRef = db.collection('users').doc(auth.currentUser.uid);
             await db.collection('trades').doc(tradeId).update({ status: 'CLOSED', closePrice: 0, pnl: finalPnl });
             await db.runTransaction(async (t) => {
                 const userDoc = await t.get(userRef);
-                t.update(userRef, { "wallet.equity": userDoc.data().wallet.equity + finalPnl });
+                const newEquity = Math.max(0, userDoc.data().wallet.equity + finalPnl);
+                t.update(userRef, { "wallet.equity": newEquity });
             });
             // Log to History
             await db.collection('transactions').add({
@@ -1443,7 +1622,87 @@
             showToast("Trade Closed & Balance Updated", "success");
         }
 
-        function setFilter(c, e) { currentFilter = c; document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active')); e.classList.add('filter-active'); renderMarket(); }
+        async function cancelPendingOrder(tid) {
+            if(!(await showPrompt("Cancel Order", "Delete this pending limit order?"))) return;
+            await db.collection('trades').doc(tid).delete();
+            showToast("Pending Order Cancelled", "info");
+        }
+
+        function openEditTradeModal(tid) {
+            const trade = activeTradesData.find(t => t.id === tid);
+            if(!trade) return;
+            currentEditTradeId = tid;
+            document.getElementById('edit-trade-details').innerText = `${trade.symbol} | ${trade.type} | Lot: ${trade.lot.toFixed(2)}`;
+            document.getElementById('edit-sl').value = trade.stopLoss || '';
+            document.getElementById('edit-tp').value = trade.takeProfit || '';
+            document.getElementById('partial-close-lot').value = 0.01;
+            document.getElementById('edit-trade-modal').classList.remove('hidden');
+        }
+
+        async function handleUpdateTrade() {
+            const sl = parseFloat(document.getElementById('edit-sl').value);
+            const tp = parseFloat(document.getElementById('edit-tp').value);
+            await db.collection('trades').doc(currentEditTradeId).update({
+                stopLoss: isNaN(sl) ? null : sl,
+                takeProfit: isNaN(tp) ? null : tp
+            });
+            showToast("Order Modified", "success");
+            document.getElementById('edit-trade-modal').classList.add('hidden');
+        }
+
+        async function handlePartialClose() {
+            const trade = activeTradesData.find(t => t.id === currentEditTradeId);
+            const partialLot = parseFloat(document.getElementById('partial-close-lot').value);
+            
+            if(!trade || isNaN(partialLot) || partialLot <= 0) return;
+            if(partialLot > trade.lot) return showToast("Partial lot cannot exceed total lot", "error");
+            
+            if(!confirm(`Close ${partialLot} lot of this position?`)) return;
+
+            const item = marketItems.find(m => m.s === trade.symbol);
+            const liveMid = item?.p || trade.entryPrice;
+            const spread = getSpread(trade.symbol);
+            const exitPrice = trade.type === 'BUY' ? (liveMid - spread) : (liveMid + spread);
+
+            let multiplier = 100;
+            if (item?.cat === 'forex') multiplier = 10000;
+            if (item?.cat === 'crypto') multiplier = 1;
+            if (item?.cat === 'metals') multiplier = 100;
+
+            const pnlForPartial = (trade.type === 'BUY' ? (exitPrice - trade.entryPrice) : (trade.entryPrice - exitPrice)) * partialLot * multiplier;
+
+            const userRef = db.collection('users').doc(auth.currentUser.uid);
+            
+            if(Math.abs(trade.lot - partialLot) < 0.001) {
+                // If closing full lot, use regular close
+                document.getElementById('edit-trade-modal').classList.add('hidden');
+                return closePosition(trade.id, pnlForPartial);
+            }
+
+            await db.runTransaction(async (t) => {
+                const userDoc = await t.get(userRef);
+                const newEquity = Math.max(0, userDoc.data().wallet.equity + pnlForPartial);
+                t.update(userRef, { "wallet.equity": newEquity });
+                t.update(db.collection('trades').doc(trade.id), { lot: trade.lot - partialLot });
+            });
+
+            await db.collection('transactions').add({
+                userId: auth.currentUser.uid, type: 'PARTIAL_CLOSE_PROFIT_LOSS', amount: pnlForPartial, 
+                status: 'COMPLETED', timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            });
+
+            showToast(`Closed ${partialLot} lot. Profit: ₹${pnlForPartial.toFixed(2)}`, "success");
+            document.getElementById('edit-trade-modal').classList.add('hidden');
+        }
+
+        function setFilter(c, e) { 
+            currentFilter = c; 
+            searchResults = []; // Clear search when filtering by category
+            document.getElementById('market-search').value = ''; 
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('filter-active')); 
+            e.classList.add('filter-active'); 
+            renderMarket(); 
+        }
         function logout() { auth.signOut(); location.reload(); }
 
         async function openDeposit() {
@@ -1596,7 +1855,7 @@
             });
         }
 
-        setInterval(renderMarket, 500);
+        setInterval(renderMarket, 1000); // Render market list every second to update static prices (if any)
     </script>
 </body>
 </html>
