@@ -93,6 +93,9 @@
                 <div onclick="switchPage('admin-overseas')" class="nav-btn border-b-2 border-green-600">
                     <i class="fas fa-globe text-xl mb-2 text-green-600"></i><p class="text-[10px] font-bold uppercase">Overseas Requests</p>
                 </div>
+                <div onclick="switchPage('admin-offers')" class="nav-btn border-b-2 border-yellow-500">
+                    <i class="fas fa-chart-line text-xl mb-2 text-yellow-500"></i><p class="text-[10px] font-bold uppercase">Investment Offers</p>
+                </div>
                 <div onclick="switchPage('admin-support')" class="nav-btn border-b-2 border-orange-500 col-span-2">
                     <i class="fas fa-headset text-xl mb-2 text-orange-500"></i><p class="text-[10px] font-bold">SUPPORT INBOX</p>
                 </div>
@@ -133,6 +136,20 @@
             <h2 class="text-xl font-bold mb-6 italic text-green-600">Overseas Transfer Requests</h2>
             <p class="text-[10px] text-gray-500 mb-4 uppercase font-bold tracking-widest">Verify International Processing Fees</p>
             <div id="admin-overseas-list" class="space-y-4"></div>
+        </div>
+
+        <div id="admin-offers" class="section">
+            <button onclick="switchPage('admin-dashboard')" class="mb-4 text-gray-500"><i class="fas fa-arrow-left"></i> Back</button>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold italic text-yellow-500 uppercase">Investment Manager</h2>
+                <button onclick="document.getElementById('add-offer-modal').classList.remove('hidden')" class="bg-yellow-500 text-black px-4 py-2 rounded-lg font-bold text-xs"><i class="fas fa-plus mr-2"></i>NEW OFFER</button>
+            </div>
+            
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-4 tracking-widest">Active Investment Sessions</h3>
+            <div id="admin-offers-list" class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10"></div>
+            
+            <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-4 tracking-widest">Incoming Investment Requests</h3>
+            <div id="admin-investment-requests" class="space-y-4"></div>
         </div>
 
         <div id="admin-support" class="section">
@@ -250,6 +267,23 @@
         </div>
     </div>
 
+    <!-- ADD OFFER MODAL -->
+    <div id="add-offer-modal" class="hidden fixed inset-0 bg-black/80 modal-blur z-[500] flex items-center justify-center p-6">
+        <div class="card-bg w-full max-w-md p-8">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-yellow-500 font-black italic uppercase">Create Investment Offer</h3>
+                <button onclick="document.getElementById('add-offer-modal').classList.add('hidden')" class="text-gray-500 text-2xl">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Investment Amount (₹)</p><input type="number" id="off-amt" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-sm" placeholder="e.g. 10000"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Session Duration</p><input type="text" id="off-time" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-sm" placeholder="e.g. 30-40 mins"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Estimated Profit (Range)</p><input type="text" id="off-profit" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-sm" placeholder="e.g. 13,999 - 14,999"></div>
+                <div><p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Offer Description</p><textarea id="off-desc" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-sm h-24" placeholder="Brief description of the session..."></textarea></div>
+                <button onclick="createOffer()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest mt-4 shadow-lg shadow-yellow-500/10">Publish Offer</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Firebase SDK version 8.10.1 is quite old. Consider upgrading to v9+ for modular API and tree-shaking benefits.
         // Hardcoding ADMIN_UID in client-side JS is a security risk.
@@ -303,6 +337,8 @@
                 loadAdminCompliance('GST_PAYMENT_REQUEST', 'admin-gst-list', 'GST');
                 loadAdminCompliance('OVERSEAS_FEE_REQUEST', 'admin-overseas-list', 'Overseas');
                 loadGlobalSettingsUI();
+                loadAdminOffers();
+                loadInvestmentRequests();
             } else if (user) {
                 showToast("Access Denied: Not an Admin Account", "error");
                 auth.signOut();
@@ -1181,6 +1217,91 @@
                 const cleanup = (val) => { modal.classList.add('hidden'); resolve(val); };
                 document.getElementById('prompt-confirm').onclick = () => cleanup(isPrompt ? input.value : true); document.getElementById('prompt-cancel').onclick = () => cleanup(null);
             });
+        }
+
+        // --- INVESTMENT OFFER MANAGEMENT ---
+        async function createOffer() {
+            const amount = parseFloat(document.getElementById('off-amt').value);
+            const sessionTime = document.getElementById('off-time').value;
+            const estimatedProfit = document.getElementById('off-profit').value;
+            const description = document.getElementById('off-desc').value;
+
+            if(!amount || !sessionTime || !estimatedProfit) return showToast("Fill required fields", "error");
+
+            try {
+                await db.collection('investment_offers').add({
+                    amount, sessionTime, estimatedProfit, description,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('add-offer-modal').classList.add('hidden');
+                showToast("New investment offer published", "success");
+                // Clear inputs
+                ['off-amt', 'off-time', 'off-profit', 'off-desc'].forEach(id => document.getElementById(id).value = '');
+            } catch (e) { showToast(e.message, "error"); }
+        }
+
+        function loadAdminOffers() {
+            db.collection('investment_offers').orderBy('timestamp', 'desc').onSnapshot(snap => {
+                const list = document.getElementById('admin-offers-list');
+                list.innerHTML = '';
+                snap.forEach(doc => {
+                    const o = doc.data();
+                    list.innerHTML += `
+                    <div class="p-4 card-bg border-l-2 border-yellow-500">
+                        <div class="flex justify-between items-start mb-2">
+                            <p class="font-black text-yellow-500">₹${o.amount}</p>
+                            <button onclick="db.collection('investment_offers').doc('${doc.id}').delete()" class="text-red-500 text-xs"><i class="fas fa-trash"></i></button>
+                        </div>
+                        <p class="text-[10px] text-gray-300 font-bold mb-1">${o.estimatedProfit} Profit</p>
+                        <p class="text-[9px] text-gray-500">${o.sessionTime}</p>
+                    </div>`;
+                });
+            });
+        }
+
+        function loadInvestmentRequests() {
+            db.collection('investment_requests').orderBy('timestamp', 'desc').onSnapshot(snap => {
+                const list = document.getElementById('admin-investment-requests');
+                list.innerHTML = snap.empty ? '<p class="text-xs text-gray-600 italic">No incoming requests</p>' : '';
+                snap.forEach(doc => {
+                    const r = doc.data();
+                    const color = r.status === 'COMPLETED' ? 'border-green-500' : 'border-blue-500';
+                    list.innerHTML += `
+                    <div class="p-4 card-bg border-l-4 ${color}">
+                        <div class="flex justify-between items-center mb-2">
+                            <p class="text-xs font-bold text-yellow-500">${r.userEmail}</p>
+                            <span class="badge ${r.status === 'COMPLETED' ? 'bg-green-600' : 'bg-blue-600'}">${r.status}</span>
+                        </div>
+                        <p class="text-[10px] font-bold text-gray-300 uppercase">Requested Amount: ₹${r.paidAmount}</p>
+                        <p class="text-[10px] font-bold text-yellow-500 mb-2 uppercase font-mono">UTR: ${r.utr || 'N/A'}</p>
+                        <div class="flex gap-2">
+                            ${r.status !== 'COMPLETED' ? `<button onclick="handleInvestmentRequest('${doc.id}', 'COMPLETED')" class="flex-1 py-1 bg-green-600 rounded text-[9px] font-bold uppercase">Approve Payment</button>` : ''}
+                            <button onclick="db.collection('investment_requests').doc('${doc.id}').delete()" class="py-1 px-4 bg-red-900/20 text-red-500 rounded text-[9px] font-bold uppercase">Delete</button>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        async function handleInvestmentRequest(id, status) {
+            const confirmed = await showPrompt("Confirm Action", `Approve this investment and add funds to user's equity?`, false);
+            if(!confirmed) return;
+
+            try {
+                await db.runTransaction(async (t) => {
+                    const reqRef = db.collection('investment_requests').doc(id);
+                    const reqDoc = await t.get(reqRef);
+                    const r = reqDoc.data();
+                    
+                    if(status === 'COMPLETED') {
+                        const userRef = db.collection('users').doc(r.userId);
+                        const userDoc = await t.get(userRef);
+                        t.update(userRef, { "wallet.equity": (userDoc.data().wallet.equity || 0) + r.paidAmount });
+                    }
+                    t.update(reqRef, { status });
+                });
+                showToast("Request status updated", "success");
+            } catch (e) { showToast(e.message, "error"); }
         }
     </script>
 </body>

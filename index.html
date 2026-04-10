@@ -169,6 +169,13 @@
             <div id="history-list-content" class="space-y-3"></div>
         </div>
 
+        <div id="offers" class="section">
+            <h2 class="text-xl font-bold mb-2 italic text-yellow-500 uppercase">Premium Offers</h2>
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-6 tracking-widest">Expert Investment Sessions</p>
+            
+            <div id="offers-container" class="grid grid-cols-1 gap-4 pb-20"></div>
+        </div>
+
         <div id="support" class="section">
             <h2 class="text-xl font-bold mb-4">Support Center</h2>
             <div class="card-bg p-6 mb-6">
@@ -657,6 +664,9 @@
             <div onclick="switchPage('trades', this)" class="text-center text-gray-500 cursor-pointer">
                 <i class="fas fa-exchange-alt block text-xl mb-1"></i><span class="text-[9px] font-bold">TRADES</span>
             </div>
+            <div onclick="switchPage('offers', this)" class="text-center text-gray-500 cursor-pointer">
+                <i class="fas fa-chart-line block text-xl mb-1"></i><span class="text-[9px] font-bold">OFFERS</span>
+            </div>
             <div onclick="switchPage('profile', this)" class="text-center text-gray-500 cursor-pointer">
                 <i class="fas fa-user block text-xl mb-1"></i><span class="text-[9px] font-bold">PROFILE</span>
             </div>
@@ -700,6 +710,31 @@
             </div>
 
             <button onclick="handleUpdateTrade()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">Save Changes</button>
+        </div>
+    </div>
+
+    <!-- INVESTMENT PAYMENT MODAL -->
+    <div id="investment-pay-modal" class="hidden fixed inset-0 bg-black/95 z-[600] flex items-center justify-center p-6 modal-blur">
+        <div class="card-bg w-full max-w-sm p-8 text-center border-yellow-500/30">
+            <h3 class="font-black text-yellow-500 italic uppercase mb-2">Join Session</h3>
+            <p class="text-xs text-gray-500 mb-6">Scan the QR code below and pay the exact investment amount to join the session.</p>
+            
+            <div id="invest-qr-container" class="bg-white p-4 rounded-3xl mb-6 inline-block shadow-2xl">
+                <img id="invest-qr" src="" alt="Payment QR" class="w-48 h-48">
+            </div>
+
+            <div id="invest-utr-container" class="hidden mb-6 text-left">
+                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 text-center">Enter 12-Digit UTR Number</p>
+                <input type="number" id="invest-utr" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-center text-xl font-bold tracking-[0.2em] text-yellow-500" placeholder="000000000000">
+                <p class="text-[8px] text-gray-600 mt-2 text-center uppercase italic">Found in your payment app transaction details</p>
+            </div>
+            
+            <div class="mb-8">
+                <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Amount to Pay</p>
+                <h2 id="invest-pay-amt" class="text-3xl font-black text-white">₹0.00</h2>
+            </div>
+            
+            <button id="invest-confirm-btn" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-yellow-500/10">I Have Paid</button>
         </div>
     </div>
 
@@ -1086,6 +1121,7 @@
                 loadSupportTickets(user.uid);
                 setupTradePanel('BTCUSD'); // Initialize trade panel with a default symbol
                 loadLeaderboard(); // Load leaderboard for users
+                loadUserOffers(); // Load Premium Offers
                 loadProfileStats(user.uid); // Load Profile Analytics
                 initPriceSocket();
             } else {
@@ -1927,6 +1963,88 @@
             renderMarket(); 
         }
         function logout() { auth.signOut(); location.reload(); }
+
+        // --- INVESTMENT OFFERS LOGIC ---
+        function loadUserOffers() {
+            db.collection('investment_offers').orderBy('timestamp', 'desc').onSnapshot(snap => {
+                const container = document.getElementById('offers-container');
+                if(!container) return;
+                container.innerHTML = snap.empty ? '<p class="text-center text-gray-600 text-xs mt-20 italic">No offers currently active.</p>' : '';
+                
+                snap.forEach(doc => {
+                    const o = doc.data();
+                    container.innerHTML += `
+                    <div class="card-bg p-6 border-l-4 border-yellow-500 relative overflow-hidden group">
+                        <div class="absolute right-[-10px] top-[-10px] text-yellow-500/5 text-6xl font-black italic group-hover:scale-110 transition-transform">PRO</div>
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <p class="text-[10px] text-yellow-500 font-black uppercase tracking-widest mb-1 italic">Investment Session</p>
+                                <h3 class="text-2xl font-black text-white">₹${o.amount.toLocaleString('en-IN')}</h3>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-[9px] text-gray-500 uppercase font-bold">Estimated Profit</p>
+                                <p class="text-sm font-black text-green-500">₹${o.estimatedProfit}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-4 mb-6">
+                            <div class="bg-gray-800/50 px-3 py-1 rounded text-[9px] font-bold text-gray-300 uppercase italic border border-gray-700"><i class="far fa-clock mr-1"></i> ${o.sessionTime}</div>
+                            <div class="bg-gray-800/50 px-3 py-1 rounded text-[9px] font-bold text-gray-300 uppercase italic border border-gray-700"><i class="fas fa-shield-alt mr-1"></i> Verified</div>
+                        </div>
+                        <p class="text-[11px] text-gray-500 mb-6 leading-relaxed italic">${o.description || 'Join our premium high-yield trading session managed by experts.'}</p>
+                        <button onclick="openInvestmentPayment('${doc.id}', ${o.amount})" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-yellow-500/10">Apply For Session</button>
+                    </div>`;
+                });
+            });
+        }
+
+        function openInvestmentPayment(offerId, amount) {
+            const modal = document.getElementById('investment-pay-modal');
+            const qrImg = document.getElementById('invest-qr');
+            const payAmt = document.getElementById('invest-pay-amt');
+            const confirmBtn = document.getElementById('invest-confirm-btn');
+            
+            // Reset Modal View
+            document.getElementById('invest-qr-container').classList.remove('hidden');
+            document.getElementById('invest-utr-container').classList.add('hidden');
+            document.getElementById('invest-utr').value = '';
+            confirmBtn.innerText = "I Have Paid";
+
+            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${amount}&cu=INR`;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
+            payAmt.innerText = "₹" + amount.toLocaleString('en-IN');
+            
+            confirmBtn.onclick = () => submitInvestmentRequest(offerId, amount);
+            modal.classList.remove('hidden');
+        }
+
+        async function submitInvestmentRequest(offerId, amount) {
+            const utrContainer = document.getElementById('invest-utr-container');
+            const qrContainer = document.getElementById('invest-qr-container');
+            const confirmBtn = document.getElementById('invest-confirm-btn');
+            const utrInput = document.getElementById('invest-utr');
+
+            if (utrContainer.classList.contains('hidden')) {
+                utrContainer.classList.remove('hidden');
+                qrContainer.classList.add('hidden');
+                confirmBtn.innerText = "Submit UTR Number";
+                return;
+            }
+
+            const utr = utrInput.value;
+            if (!/^\d{12}$/.test(utr)) {
+                return showToast("Please enter exact 12-digit numeric UTR", "error");
+            }
+
+            try {
+                await db.collection('investment_requests').add({
+                    userId: auth.currentUser.uid, userEmail: auth.currentUser.email,
+                    offerId, paidAmount: amount, utr: utr, status: 'PENDING',
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('investment-pay-modal').classList.add('hidden');
+                showToast("Request submitted. Session access will be granted after verification.", "success");
+            } catch (e) { showToast(e.message, "error"); }
+        }
 
         async function openDeposit() {
             const amt = await showPrompt("Deposit Request", "Enter amount you wish to deposit ($):", true);
