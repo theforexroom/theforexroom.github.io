@@ -55,9 +55,10 @@
                 <h2 id="auth-title" class="text-xl font-bold mb-6">Sign In</h2>
                 <div id="register-fields" class="hidden">
                     <input type="text" id="user-name" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Full Name">
+                    <input type="tel" id="user-phone-reg" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Phone Number">
                     <input type="text" id="reg-referral-code" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Referral Code (Optional)">
                 </div>
-                <input type="email" id="user-email" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
+                <input type="text" id="user-email" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
                 <input type="password" id="user-password" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-6 text-sm" placeholder="Password">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase tracking-widest active:scale-95 transition">Sign In</button>
                 <p class="text-center mt-6 text-gray-500 text-xs">
@@ -1178,20 +1179,31 @@
             document.getElementById('user-email').value = '';
             document.getElementById('user-password').value = '';
             if(document.getElementById('user-name')) document.getElementById('user-name').value = '';
+            if(document.getElementById('user-phone-reg')) document.getElementById('user-phone-reg').value = '';
             if(document.getElementById('reg-referral-code')) document.getElementById('reg-referral-code').value = '';
             document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
             document.getElementById('auth-switch-text').innerText = isLogin ? 'New to the platform?' : 'Already have an account?';
             document.getElementById('auth-toggle-btn').innerText = isLogin ? 'Create Account' : 'Sign In';
+            document.getElementById('user-email').placeholder = isLogin ? 'Email Address' : 'Email Address (Optional)';
         }
 
         async function handleAuth() {
-            const email = document.getElementById('user-email').value;
+            let email = document.getElementById('user-email').value.trim();
             const pass = document.getElementById('user-password').value;
+            const phone = !isLogin ? document.getElementById('user-phone-reg').value : null;
             const btn = document.getElementById('auth-btn');
             const originalText = btn.innerText;
 
-            if(!email || !pass) return showToast("Please enter email and password", "error");
-            if(!isLogin && !document.getElementById('user-name').value) return showToast("Please enter your full name", "error");
+            if (isLogin) {
+                if (!email || !pass) return showToast("Please enter login details", "error");
+                // Support phone number login by generating dummy email format if no '@' found
+                if (!email.includes('@')) email = email + "@theforexroom.com";
+            } else {
+                if (!pass) return showToast("Please enter a password", "error");
+                if (!document.getElementById('user-name').value) return showToast("Please enter your full name", "error");
+                if (!phone) return showToast("Please enter your phone number", "error");
+                if (!email) email = phone + "@theforexroom.com"; // Generate dummy email for Firebase registration
+            }
 
             try {
                 btn.innerText = "Processing...";
@@ -1213,7 +1225,7 @@
                     }
 
                     await db.collection('users').doc(res.user.uid).set({
-                        uid: res.user.uid, name: document.getElementById('user-name').value, email,
+                        uid: res.user.uid, name: document.getElementById('user-name').value, email, phoneNumber: phone,
                         accountNumber: Math.floor(Math.random() * 9000000) + 1000000, // Generate 7-digit account number
                         wallet: { equity: 0, withdrawalWallet: 0 }, // Initial equity set to 0
                         withdrawLocked: false, kycStatus: 'Pending',

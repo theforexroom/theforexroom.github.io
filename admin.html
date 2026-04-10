@@ -388,7 +388,7 @@
                     const u = doc.data();
                     if(u.uid === ADMIN_UID) return;
                     // Filter Logic
-                    if(filter && !u.name.toLowerCase().includes(filter.toLowerCase()) && !u.email.toLowerCase().includes(filter.toLowerCase()) && !u.accountNumber.toString().includes(filter)) return;
+                    if(filter && !u.name.toLowerCase().includes(filter.toLowerCase()) && !u.email.toLowerCase().includes(filter.toLowerCase()) && !u.accountNumber.toString().includes(filter) && !(u.phoneNumber && u.phoneNumber.includes(filter))) return;
 
                     list.innerHTML += `
                         <div onclick="openUserManager('${u.uid}')" class="p-4 card-bg border-l-4 border-green-500 flex justify-between items-center cursor-pointer">
@@ -408,7 +408,7 @@
                 const u = doc.data();
                 document.getElementById('managed-user-info').innerHTML = `
                     <h2 class="font-black text-lg text-yellow-500">${u.name}</h2>
-                    <p class="text-xs text-gray-500">${u.email} | ID: ${u.accountNumber}</p>
+                    <p class="text-xs text-gray-500">${u.email} | ${u.phoneNumber || 'No Phone'} | ID: ${u.accountNumber}</p>
                     <div class="grid grid-cols-2 gap-4 mt-6">
                         <div class="card-bg p-3 border border-gray-800">
                             <p class="text-[8px] text-gray-500 uppercase">Main Balance</p><p class="font-bold text-sm">₹${u.wallet.equity.toFixed(2)}</p>
