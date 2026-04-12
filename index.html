@@ -529,7 +529,7 @@
             <input type="tel" id="user-phone" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold" placeholder="+91 XXXXX XXXXX">
             <div class="card-bg p-4 mb-10">
                 <p class="text-[10px] text-gray-500 mb-2">Merchant UPI ID</p>
-                <p class="font-mono text-yellow-500 text-lg">7890000144@ybl</p>
+                <p class="font-mono text-yellow-500 text-lg">arfatraza022-1@oksbi</p>
             </div>
             <button onclick="initiateUPILink()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Pay Now</button>
         </div>
@@ -563,7 +563,7 @@
                 <p class="text-xs text-gray-400">Please enter the 12-digit UTR / Transaction ID from your payment app to confirm your deposit.</p>
             </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3 text-center">UTR / Transaction Number</p>
-            <input type="number" id="utr-number" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold tracking-[0.5em] text-center text-yellow-500" placeholder="000000000000">
+            <input type="number" id="utr-number" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold tracking-[0.2em] text-center text-yellow-500" placeholder="000000000000">
             <button onclick="submitUTR()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase shadow-lg shadow-yellow-500/20">Submit for Approval</button>
         </div>
 
@@ -723,24 +723,40 @@
     <div id="investment-pay-modal" class="hidden fixed inset-0 bg-black/95 z-[600] flex items-center justify-center p-6 modal-blur">
         <div class="card-bg w-full max-w-sm p-8 text-center border-yellow-500/30">
             <h3 class="font-black text-yellow-500 italic uppercase mb-2">Join Session</h3>
-            <p class="text-xs text-gray-500 mb-6">Scan the QR code below and pay the exact investment amount to join the session.</p>
-            
-            <div id="invest-qr-container" class="bg-white p-4 rounded-3xl mb-6 inline-block shadow-2xl">
-                <img id="invest-qr" src="" alt="Payment QR" class="w-48 h-48">
+
+            <!-- Method Selection -->
+            <div id="invest-selection" class="space-y-4 py-4">
+                <p class="text-xs text-gray-500 mb-4">Choose payment method to join</p>
+                <div onclick="selectInvestMethod('UPI')" class="card-bg p-4 flex items-center justify-between cursor-pointer border border-gray-800 hover:border-yellow-500">
+                    <div class="flex items-center gap-3"><i class="fas fa-mobile-alt text-blue-500"></i><span class="text-xs font-bold">Direct UPI Pay</span></div>
+                    <i class="fas fa-chevron-right text-gray-700"></i>
+                </div>
+                <div onclick="selectInvestMethod('QR')" class="card-bg p-4 flex items-center justify-between cursor-pointer border border-gray-800 hover:border-yellow-500">
+                    <div class="flex items-center gap-3"><i class="fas fa-qrcode text-purple-500"></i><span class="text-xs font-bold">Scan QR Code</span></div>
+                    <i class="fas fa-chevron-right text-gray-700"></i>
+                </div>
+                <button onclick="document.getElementById('investment-pay-modal').classList.add('hidden')" class="text-[10px] text-gray-500 mt-4 uppercase font-bold tracking-widest">Cancel</button>
             </div>
 
-            <div id="invest-utr-container" class="hidden mb-6 text-left">
-                <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 text-center">Enter 12-Digit UTR Number</p>
-                <input type="number" id="invest-utr" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-center text-xl font-bold tracking-[0.2em] text-yellow-500" placeholder="000000000000">
-                <p class="text-[8px] text-gray-600 mt-2 text-center uppercase italic">Found in your payment app transaction details</p>
+            <!-- Payment Details -->
+            <div id="invest-pay-details" class="hidden">
+                <p class="text-xs text-gray-500 mb-6" id="invest-instruction">Scan the QR code below and pay the exact amount.</p>
+                <div id="invest-qr-container" class="bg-white p-4 rounded-3xl mb-6 inline-block shadow-2xl">
+                    <img id="invest-qr" src="" alt="Payment QR" class="w-48 h-48">
+                </div>
+                <div id="invest-utr-container" class="hidden mb-6 text-left">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 text-center">Enter 12-Digit UTR Number</p>
+                    <input type="number" id="invest-utr" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-center text-xl font-bold tracking-[0.2em] text-yellow-500" placeholder="000000000000">
+                </div>
+                <div class="mb-8">
+                    <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Amount to Pay</p>
+                    <h2 id="invest-pay-amt" class="text-3xl font-black text-white">₹0.00</h2>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="openInvestmentPayment(currentInvestData.offerId, currentInvestData.amount)" class="flex-1 bg-gray-800 text-gray-400 py-4 rounded-xl font-bold uppercase text-[10px]">Back</button>
+                    <button id="invest-confirm-btn" class="flex-[2] bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest text-[10px]">I Have Paid</button>
+                </div>
             </div>
-            
-            <div class="mb-8">
-                <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Amount to Pay</p>
-                <h2 id="invest-pay-amt" class="text-3xl font-black text-white">₹0.00</h2>
-            </div>
-            
-            <button id="invest-confirm-btn" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest shadow-xl shadow-yellow-500/10">I Have Paid</button>
         </div>
     </div>
 
@@ -761,6 +777,21 @@
                 <button id="prompt-cancel" class="flex-1 bg-gray-800 text-gray-400 py-3 rounded-xl font-bold uppercase text-[10px] hover:bg-gray-700 transition">Cancel</button>
                 <button id="prompt-confirm" class="flex-1 bg-yellow-500 text-black py-3 rounded-xl font-bold uppercase text-[10px] hover:scale-105 transition">Confirm</button>
             </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION DETAIL MODAL -->
+    <div id="notif-detail-modal" class="hidden fixed inset-0 bg-black/95 z-[700] flex items-center justify-center p-6 modal-blur">
+        <div class="card-bg w-full max-w-sm p-6 border-yellow-500/20 shadow-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="font-black text-yellow-500 italic uppercase tracking-widest text-sm">Notification</h3>
+                <button onclick="document.getElementById('notif-detail-modal').classList.add('hidden')" class="text-2xl text-gray-500">&times;</button>
+            </div>
+            <div class="mb-6">
+                <p id="detail-notif-time" class="text-[9px] text-gray-500 uppercase font-bold mb-4"></p>
+                <div id="detail-notif-msg" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap max-h-[60vh] overflow-y-auto pr-2 no-scrollbar font-medium"></div>
+            </div>
+            <button onclick="document.getElementById('notif-detail-modal').classList.add('hidden')" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-yellow-500/10">Back to Terminal</button>
         </div>
     </div>
 
@@ -1142,49 +1173,12 @@
             }
         });
 
+        // Global state to store notifications
+        let currentUserNotifications = [];
+        
         function focusSearch() {
-            switchPage('home');
-            setTimeout(() => document.getElementById('market-search').focus(), 100);
-        }
-
-        function loadUserNotifications(uid) {
-            db.collection('notifications').where('userId', '==', uid).orderBy('timestamp', 'desc').onSnapshot(snap => {
-                const list = document.getElementById('notifications-list');
-                const dot = document.getElementById('notif-dot');
-                if(!list) return;
-                let html = '';
-                let unread = 0;
-                snap.forEach(doc => {
-                    const n = doc.data();
-                    if(!n.read) unread++;
-                    const time = n.timestamp ? n.timestamp.toDate().toLocaleString() : 'Just now';
-                    html += `
-                        <div class="p-4 card-bg border-l-4 ${n.read ? 'border-gray-700' : 'border-yellow-500'} mb-3" onclick="db.collection('notifications').doc('${doc.id}').update({read:true})">
-                            <div class="flex justify-between items-start mb-1">
-                                <p class="text-[9px] font-bold text-yellow-500 uppercase">System Update</p>
-                                <p class="text-[8px] text-gray-500">${time}</p>
-                            </div>
-                            <p class="text-xs text-gray-300 leading-relaxed">${n.message}</p>
-                        </div>`;
-                });
-                list.innerHTML = snap.empty ? '<p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>' : html;
-                dot.classList.toggle('hidden', unread === 0);
-            });
-        }
-
-        function toggleLimitInput() {
-            const type = document.getElementById('panel-order-type').value;
-            const container = document.getElementById('limit-price-container');
-            const desc = document.getElementById('order-type-desc');
-            container.classList.toggle('hidden', type === 'MARKET');
-            desc.innerText = type === 'MARKET' ? "Fill at market price" : "Fill at specific price";
-        }
-
-        function focusSearch() {
-            // Home page par switch karte hain aur nav highlight karte hain
             const homeNav = document.querySelector('nav div[onclick*="\'home\'"]');
             switchPage('home', homeNav);
-            // Thoda delay taaki DOM render ho jaye, phir focus
             setTimeout(() => {
                 const searchInput = document.getElementById('market-search');
                 if(searchInput) {
@@ -1194,37 +1188,56 @@
             }, 300);
         }
 
+        function toggleLimitInput() {
+            const type = document.getElementById('panel-order-type').value;
+            const container = document.getElementById('limit-price-container');
+            const desc = document.getElementById('order-type-desc');
+            if(container) container.classList.toggle('hidden', type === 'MARKET');
+            if(desc) desc.innerText = type === 'MARKET' ? "Fill at market price" : "Fill at specific price";
+        }
+
         function loadUserNotifications(uid) {
             if(!uid) return;
-            // 'orderBy' hata diya hai taaki composite index ki zaroorat na pade, JS mein sort karenge
             db.collection('notifications').where('userId', '==', uid).onSnapshot(snap => {
                 const list = document.getElementById('notifications-list');
                 const dot = document.getElementById('notif-dot');
                 if(!list) return;
                 
-                let notifications = [];
-                snap.forEach(doc => notifications.push({ id: doc.id, ...doc.data() }));
-                
-                // Latest notification upar dikhane ke liye JS sorting
-                notifications.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                currentUserNotifications = [];
+                snap.forEach(doc => currentUserNotifications.push({ id: doc.id, ...doc.data() }));
+                currentUserNotifications.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
                 let html = '';
                 let unread = 0;
-                notifications.forEach(n => {
+                currentUserNotifications.forEach(n => {
                     if(!n.read) unread++;
                     const time = n.timestamp ? n.timestamp.toDate().toLocaleString() : 'Just now';
+                    
                     html += `
-                        <div class="p-4 card-bg border-l-4 ${n.read ? 'border-gray-700' : 'border-yellow-500'} mb-3 cursor-pointer" onclick="db.collection('notifications').doc('${n.id}').update({read:true})">
+                        <div class="p-4 card-bg border-l-4 ${n.read ? 'border-gray-700' : 'border-yellow-500'} mb-3 cursor-pointer" onclick="viewNotifDetail('${n.id}')">
                             <div class="flex justify-between items-start mb-1">
                                 <p class="text-[9px] font-bold text-yellow-500 uppercase">System Update</p>
                                 <p class="text-[8px] text-gray-500">${time}</p>
                             </div>
-                            <p class="text-xs text-gray-300 leading-relaxed">${n.message}</p>
+                            <p class="text-xs text-gray-300 leading-relaxed line-clamp-1">${n.message}</p>
+                            <p class="text-[8px] text-yellow-500 mt-2 uppercase font-bold italic tracking-wider">Click to read full message</p>
                         </div>`;
                 });
-                list.innerHTML = notifications.length === 0 ? '<p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>' : html;
+                list.innerHTML = currentUserNotifications.length === 0 ? '<p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>' : html;
                 if(dot) dot.classList.toggle('hidden', unread === 0);
             }, err => console.error("Notification Error:", err));
+        }
+
+        async function viewNotifDetail(id) {
+            const n = currentUserNotifications.find(notif => notif.id === id);
+            if(!n) return;
+            
+            document.getElementById('detail-notif-time').innerText = n.timestamp ? n.timestamp.toDate().toLocaleString() : 'Just now';
+            document.getElementById('detail-notif-msg').innerText = n.message;
+            document.getElementById('notif-detail-modal').classList.remove('hidden');
+            
+            // Mark as read in background
+            if(!n.read) db.collection('notifications').doc(id).update({read:true});
         }
 
         // Toggle SL/TP inputs visibility
@@ -1541,7 +1554,7 @@
             // Hardcoded UPI ID. Consider moving to Firestore settings.
             if(!phone || phone.length < 10) return showToast("Valid Phone Required", "error");
             
-            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
+            const upiUrl = `upi://pay?pa=arfatraza022-1@oksbi&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
             
             const trx = await db.collection('transactions').add({
                 userId: auth.currentUser.uid, 
@@ -1563,7 +1576,7 @@
         function initiateQR() {
             // Hardcoded UPI ID. Consider moving to Firestore settings.
             const qrImg = document.getElementById('dynamic-qr');
-            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
+            const upiUrl = `upi://pay?pa=arfatraza022-1@oksbi&pn=TheForexRoom&am=${depositData.toPay}&cu=INR`;
             qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
             document.getElementById('qr-pay-amt').innerText = "₹" + depositData.toPay;
             switchPage('deposit-qr');
@@ -2097,24 +2110,46 @@
             });
         }
 
+        let currentInvestData = null;
         function openInvestmentPayment(offerId, amount) {
+            currentInvestData = { offerId, amount };
             const modal = document.getElementById('investment-pay-modal');
+            document.getElementById('invest-selection').classList.remove('hidden');
+            document.getElementById('invest-pay-details').classList.add('hidden');
+            modal.classList.remove('hidden');
+        }
+
+        function selectInvestMethod(method) {
+            const { offerId, amount } = currentInvestData;
+            const upiId = "arfatraza022-1@oksbi";
+            const upiUrl = `upi://pay?pa=${upiId}&pn=TheForexRoom&am=${amount}&cu=INR`;
+            
+            document.getElementById('invest-selection').classList.add('hidden');
+            document.getElementById('invest-pay-details').classList.remove('hidden');
             const qrImg = document.getElementById('invest-qr');
-            const payAmt = document.getElementById('invest-pay-amt');
+            const qrContainer = document.getElementById('invest-qr-container');
+            const utrContainer = document.getElementById('invest-utr-container');
             const confirmBtn = document.getElementById('invest-confirm-btn');
             
-            // Reset Modal View
-            document.getElementById('invest-qr-container').classList.remove('hidden');
-            document.getElementById('invest-utr-container').classList.add('hidden');
+            qrContainer.classList.add('hidden');
+            utrContainer.classList.add('hidden');
             document.getElementById('invest-utr').value = '';
+            document.getElementById('invest-pay-amt').innerText = "₹" + amount.toLocaleString('en-IN');
             confirmBtn.innerText = "I Have Paid";
-
-            const upiUrl = `upi://pay?pa=7890000144@ybl&pn=TheForexRoom&am=${amount}&cu=INR`;
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
-            payAmt.innerText = "₹" + amount.toLocaleString('en-IN');
-            
             confirmBtn.onclick = () => submitInvestmentRequest(offerId, amount);
-            modal.classList.remove('hidden');
+
+            if (method === 'UPI') {
+                document.getElementById('invest-instruction').innerText = "Opening your UPI app... If it doesn't open, use QR method.";
+                window.location.href = upiUrl;
+                setTimeout(() => {
+                    utrContainer.classList.remove('hidden');
+                    confirmBtn.innerText = "Submit UTR Number";
+                }, 1500);
+            } else {
+                document.getElementById('invest-instruction').innerText = "Scan the QR code below and pay the exact amount.";
+                qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(upiUrl)}`;
+                qrContainer.classList.remove('hidden');
+            }
         }
 
         async function submitInvestmentRequest(offerId, amount) {

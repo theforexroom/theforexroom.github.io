@@ -586,7 +586,11 @@
                 if (!list) return;
                 
                 let docs = [];
-                snap.forEach(doc => docs.push({ id: doc.id, ...doc.data({ serverTimestamps: 'estimate' }) }));
+                snap.forEach(doc => {
+                    const data = doc.data({ serverTimestamps: 'estimate' });
+                    // Sirf wahi dikhao jinpe user ne UTR submit kar diya hai
+                    if (data.status !== 'INITIATED') docs.push({ id: doc.id, ...data });
+                });
                 
                 // Client-side sort: Newest first
                 docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
@@ -642,7 +646,10 @@
                 if (!list) return;
 
                 let docs = [];
-                snap.forEach(doc => docs.push({ id: doc.id, ...doc.data({ serverTimestamps: 'estimate' }) }));
+                snap.forEach(doc => {
+                    const data = doc.data({ serverTimestamps: 'estimate' });
+                    if (data.status !== 'INITIATED') docs.push({ id: doc.id, ...data });
+                });
                 docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
                 list.innerHTML = docs.length === 0 ? '<p class="text-xs text-gray-600 italic">No pending transfers</p>' : '';
@@ -672,7 +679,10 @@
                 if (!list) return;
 
                 let docs = [];
-                snap.forEach(doc => docs.push({ id: doc.id, ...doc.data({ serverTimestamps: 'estimate' }) }));
+                snap.forEach(doc => {
+                    const data = doc.data({ serverTimestamps: 'estimate' });
+                    if (data.status !== 'INITIATED') docs.push({ id: doc.id, ...data });
+                });
                 docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
                 list.innerHTML = docs.length === 0 ? '<p class="text-xs text-gray-600 italic">No internal funds transfers</p>' : '';
@@ -701,7 +711,10 @@
                 if (!list) return;
 
                 let docs = [];
-                snap.forEach(doc => docs.push({ id: doc.id, ...doc.data({ serverTimestamps: 'estimate' }) }));
+                snap.forEach(doc => {
+                    const data = doc.data({ serverTimestamps: 'estimate' });
+                    if (data.status !== 'INITIATED') docs.push({ id: doc.id, ...data });
+                });
                 docs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
 
                 list.innerHTML = docs.length === 0 ? '<p class="text-xs text-gray-600 italic">No pending requests</p>' : '';
