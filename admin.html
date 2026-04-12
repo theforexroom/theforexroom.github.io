@@ -226,6 +226,15 @@
                 </div>
             </div>
 
+            <!-- Send Personal Notification -->
+            <div class="card-bg p-4 mb-6">
+                <h3 class="text-xs font-bold mb-4 uppercase text-yellow-500">Send Personal Notification</h3>
+                <div class="space-y-3">
+                    <textarea id="admin-user-notif" class="w-full bg-black border border-gray-700 p-3 rounded-xl text-xs h-20" placeholder="Type message for this user..."></textarea>
+                    <button onclick="adminSendNotification()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold uppercase text-[10px]">Send Notification</button>
+                </div>
+            </div>
+
             <div id="managed-user-trades" class="space-y-4"></div>
             <button onclick="adminOpenTradeForUser()" class="w-full bg-yellow-500 text-black py-4 rounded mt-6 font-bold">FORCE OPEN TRADE</button>
         </div>
@@ -511,6 +520,21 @@
             } catch (e) {
                 showToast("Error updating message: " + e.message, "error");
             }
+        }
+
+        async function adminSendNotification() {
+            const msg = document.getElementById('admin-user-notif').value;
+            if(!msg) return showToast("Message cannot be empty", "error");
+            try {
+                await db.collection('notifications').add({
+                    userId: managedUserId,
+                    message: msg,
+                    read: false,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('admin-user-notif').value = '';
+                showToast("Notification sent to user", "success");
+            } catch (e) { showToast(e.message, "error"); }
         }
 
         async function updateUserStatus(uid, field, value) {

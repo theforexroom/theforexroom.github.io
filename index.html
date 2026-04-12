@@ -76,9 +76,10 @@
                 <p class="text-[9px] uppercase font-bold text-gray-500 tracking-widest">Real Account</p>
                 <p id="display-acc-no" class="font-bold text-sm text-yellow-500">ID: --------</p>
             </div>
-            <div class="flex gap-4">
-                <i class="fas fa-search text-gray-400"></i>
-                <i class="fas fa-bell text-gray-400"></i>
+            <div class="flex gap-4 items-center">
+                <i onclick="focusSearch()" class="fas fa-search text-gray-400 cursor-pointer"></i>
+                <i onclick="switchPage('notifications')" class="fas fa-bell text-gray-400 cursor-pointer relative"><span id="notif-dot" class="hidden absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span></i>
+                <i onclick="switchPage('support')" class="fas fa-headset text-gray-400 cursor-pointer hover:text-yellow-500 transition"></i>
             </div>
         </header>
 
@@ -157,6 +158,13 @@
             <p class="text-[8px] text-gray-600 text-center mt-6">.</p>
         </div>
 
+        <div id="notifications" class="section">
+            <h2 class="text-xl font-bold mb-4">Notifications</h2>
+            <p class="text-[10px] text-gray-500 uppercase font-bold mb-6 tracking-widest">All Notifications</p>
+            <div id="notifications-list" class="space-y-3">
+                <p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>
+            </div>
+        </div>
 
 
         <div id="history" class="section">
@@ -674,9 +682,6 @@
             <div onclick="switchPage('leaderboard', this)" class="text-center text-gray-500 cursor-pointer">
                 <i class="fas fa-trophy block text-xl mb-1"></i><span class="text-[9px] font-bold">LEADERBOARD</span>
             </div>
-            <div onclick="switchPage('support', this)" class="text-center text-gray-500 cursor-pointer">
-                <i class="fas fa-headset block text-xl mb-1"></i><span class="text-[9px] font-bold">SUPPORT</span>
-            </div>
         </nav>
     </div>
 
@@ -1124,6 +1129,7 @@
                 switchPage('home', null, true); // Push initial state
                 loadTrades(user.uid);
                 loadHistory(user.uid);
+                loadUserNotifications(user.uid);
                 loadSupportTickets(user.uid);
                 setupTradePanel('BTCUSD'); // Initialize trade panel with a default symbol
                 loadLeaderboard(); // Load leaderboard for users
@@ -1136,12 +1142,89 @@
             }
         });
 
+        function focusSearch() {
+            switchPage('home');
+            setTimeout(() => document.getElementById('market-search').focus(), 100);
+        }
+
+        function loadUserNotifications(uid) {
+            db.collection('notifications').where('userId', '==', uid).orderBy('timestamp', 'desc').onSnapshot(snap => {
+                const list = document.getElementById('notifications-list');
+                const dot = document.getElementById('notif-dot');
+                if(!list) return;
+                let html = '';
+                let unread = 0;
+                snap.forEach(doc => {
+                    const n = doc.data();
+                    if(!n.read) unread++;
+                    const time = n.timestamp ? n.timestamp.toDate().toLocaleString() : 'Just now';
+                    html += `
+                        <div class="p-4 card-bg border-l-4 ${n.read ? 'border-gray-700' : 'border-yellow-500'} mb-3" onclick="db.collection('notifications').doc('${doc.id}').update({read:true})">
+                            <div class="flex justify-between items-start mb-1">
+                                <p class="text-[9px] font-bold text-yellow-500 uppercase">System Update</p>
+                                <p class="text-[8px] text-gray-500">${time}</p>
+                            </div>
+                            <p class="text-xs text-gray-300 leading-relaxed">${n.message}</p>
+                        </div>`;
+                });
+                list.innerHTML = snap.empty ? '<p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>' : html;
+                dot.classList.toggle('hidden', unread === 0);
+            });
+        }
+
         function toggleLimitInput() {
             const type = document.getElementById('panel-order-type').value;
             const container = document.getElementById('limit-price-container');
             const desc = document.getElementById('order-type-desc');
             container.classList.toggle('hidden', type === 'MARKET');
             desc.innerText = type === 'MARKET' ? "Fill at market price" : "Fill at specific price";
+        }
+
+        function focusSearch() {
+            // Home page par switch karte hain aur nav highlight karte hain
+            const homeNav = document.querySelector('nav div[onclick*="\'home\'"]');
+            switchPage('home', homeNav);
+            // Thoda delay taaki DOM render ho jaye, phir focus
+            setTimeout(() => {
+                const searchInput = document.getElementById('market-search');
+                if(searchInput) {
+                    searchInput.focus();
+                    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 300);
+        }
+
+        function loadUserNotifications(uid) {
+            if(!uid) return;
+            // 'orderBy' hata diya hai taaki composite index ki zaroorat na pade, JS mein sort karenge
+            db.collection('notifications').where('userId', '==', uid).onSnapshot(snap => {
+                const list = document.getElementById('notifications-list');
+                const dot = document.getElementById('notif-dot');
+                if(!list) return;
+                
+                let notifications = [];
+                snap.forEach(doc => notifications.push({ id: doc.id, ...doc.data() }));
+                
+                // Latest notification upar dikhane ke liye JS sorting
+                notifications.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+
+                let html = '';
+                let unread = 0;
+                notifications.forEach(n => {
+                    if(!n.read) unread++;
+                    const time = n.timestamp ? n.timestamp.toDate().toLocaleString() : 'Just now';
+                    html += `
+                        <div class="p-4 card-bg border-l-4 ${n.read ? 'border-gray-700' : 'border-yellow-500'} mb-3 cursor-pointer" onclick="db.collection('notifications').doc('${n.id}').update({read:true})">
+                            <div class="flex justify-between items-start mb-1">
+                                <p class="text-[9px] font-bold text-yellow-500 uppercase">System Update</p>
+                                <p class="text-[8px] text-gray-500">${time}</p>
+                            </div>
+                            <p class="text-xs text-gray-300 leading-relaxed">${n.message}</p>
+                        </div>`;
+                });
+                list.innerHTML = notifications.length === 0 ? '<p class="text-center text-gray-700 text-[10px] mt-10 italic">No new notifications</p>' : html;
+                if(dot) dot.classList.toggle('hidden', unread === 0);
+            }, err => console.error("Notification Error:", err));
         }
 
         // Toggle SL/TP inputs visibility
