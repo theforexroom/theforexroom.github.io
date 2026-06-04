@@ -11,18 +11,39 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 
     <style>
-        body { background-color: #0e1116; color: #ffffff; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --bg-color: #f3f4f6;
+            --text-color: #111827;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+            --input-bg: #ffffff;
+            --nav-bg: #ffffff;
+        }
+
+        body.dark-mode {
+            --bg-color: #0e1116;
+            --text-color: #ffffff;
+            --card-bg: #1c2128;
+            --border-color: #30363d;
+            --input-bg: #0d1117;
+            --nav-bg: #161b22;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; transition: all 0.3s ease; }
         .nav-active { color: #f59e0b !important; }
-        .card-bg { background: #1c2128; border: 1px solid #30363d; border-radius: 12px; }
-        .bottom-nav { background: #161b22; border-top: 1px solid #30363d; z-index: 100; }
+        .card-bg { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; }
+        .bottom-nav { background: var(--nav-bg); border-top: 1px solid var(--border-color); z-index: 100; }
         .section { display: none; padding: 15px; padding-bottom: 100px; min-height: 100vh; }
         .section-active { display: block; }
-        .filter-btn { padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: bold; border: 1px solid #30363d; color: #8b949e; white-space: nowrap; }
+        .filter-btn { padding: 8px 16px; border-radius: 8px; font-size: 11px; font-weight: bold; border: 1px solid var(--border-color); color: #8b949e; white-space: nowrap; }
         .filter-active { background: #f59e0b; color: #000; border-color: #f59e0b; }
         .profit-pos { color: #22c55e; }
         .profit-neg { color: #ef4444; }
         .badge { padding: 2px 6px; border-radius: 4px; font-size: 8px; font-weight: bold; text-transform: uppercase; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+        
+        header { background-color: var(--bg-color); border-bottom: 1px solid var(--border-color); transition: all 0.3s; }
+        input:not([type="checkbox"]):not(.bg-yellow-500), textarea { background-color: var(--input-bg) !important; border: 1px solid var(--border-color) !important; color: var(--text-color) !important; }
         
         /* Custom Animations for Toasts */
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
@@ -33,7 +54,7 @@
         .modal-blur { backdrop-filter: blur(8px); }
         
         /* Progress Bar styles */
-        .progress-container { background: #0d1117; border-radius: 20px; height: 6px; overflow: hidden; margin: 10px 0; }
+        .progress-container { background: var(--border-color); border-radius: 20px; height: 6px; overflow: hidden; margin: 10px 0; }
         .progress-bar { height: 100%; transition: width 0.5s ease; }
 
         /* Tier Styles */
@@ -41,16 +62,14 @@
 
         input { outline: none; } /* Ensure no default outline on focus */
         #auth-btn { cursor: pointer; } /* Allow disabled state to control cursor/opacity */
-
-        /* AI Chat Bubble Styles */
-        .ai-bubble { background: #2d333b; border-radius: 12px 12px 12px 2px; align-self: flex-start; }
+        .ai-bubble { background: var(--border-color); color: var(--text-color); border-radius: 12px 12px 12px 2px; align-self: flex-start; }
         .user-bubble { background: #f59e0b; color: #000; border-radius: 12px 12px 2px 12px; align-self: flex-end; }
         .chat-container { display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
-<body>
+<body class="dark-mode"> <!-- Defaulting to dark as it's a trading app, but switchable -->
 
-    <div id="auth-container" class="flex items-center justify-center min-h-screen p-6 bg-[#0e1116]">
+    <div id="auth-container" class="flex items-center justify-center min-h-screen p-6">
         <div class="w-full max-w-md">
             <div class="text-center mb-10">
                 <h1 class="text-3xl font-black text-yellow-500 tracking-tighter italic">THE FOREX ROOM</h1>
@@ -59,12 +78,12 @@
             <div class="card-bg p-8 shadow-2xl">
                 <h2 id="auth-title" class="text-xl font-bold mb-6">Sign In</h2>
                 <div id="register-fields" class="hidden">
-                    <input type="text" id="user-name" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Full Name">
-                    <input type="tel" id="user-phone-reg" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Phone Number">
-                    <input type="text" id="reg-referral-code" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Referral Code (Optional)">
+                    <input type="text" id="user-name" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Full Name">
+                    <input type="tel" id="user-phone-reg" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Phone Number">
+                    <input type="text" id="reg-referral-code" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Referral Code (Optional)">
                 </div>
-                <input type="text" id="user-email" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
-                <input type="password" id="user-password" class="w-full bg-[#0d1117] border border-gray-700 p-4 rounded-xl mb-6 text-sm" placeholder="Password">
+                <input type="text" id="user-email" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
+                <input type="password" id="user-password" class="w-full p-4 rounded-xl mb-6 text-sm" placeholder="Password">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase tracking-widest active:scale-95 transition">Sign In</button>
                 <p class="text-center mt-6 text-gray-500 text-xs">
                     <span id="auth-switch-text">New to the platform?</span> 
@@ -76,7 +95,7 @@
 
     <div id="app-container" class="hidden">
         
-        <header class="p-4 flex justify-between items-center border-b border-gray-800 sticky top-0 bg-[#0e1116] z-50">
+        <header class="p-4 flex justify-between items-center sticky top-0 z-50">
             <div>
                 <p class="text-[9px] uppercase font-bold text-gray-500 tracking-widest">Real Account</p>
                 <p id="display-acc-no" class="font-bold text-sm text-yellow-500">ID: --------</p>
@@ -99,7 +118,7 @@
                 <p class="text-[10px] font-bold text-red-500 uppercase">Warning: Low Margin Level! Deposit funds to avoid liquidation.</p>
             </div>
 
-            <div class="card-bg p-6 mb-6 bg-gradient-to-br from-[#1c2128] to-[#0d1117]">
+            <div class="card-bg p-6 mb-6 bg-gradient-to-br from-yellow-500/10 to-transparent">
                 <p class="text-gray-400 text-[10px] uppercase font-bold mb-1">Total Equity</p>
                 <h1 id="user-equity" class="text-4xl font-black mb-6">₹0.00</h1>
                 <div class="flex gap-2">
@@ -110,7 +129,7 @@
 
             <div class="grid grid-cols-3 gap-2 mb-6 text-center"> 
                 <div onclick="switchPage('transfer-funds-page')" class="card-bg p-3 cursor-pointer"><p class="text-[8px] text-gray-500 uppercase">Transfer</p><i class="fas fa-exchange-alt text-yellow-500 text-xs"></i></div> 
-                <div class="card-bg p-3"><p class="text-[8px] text-gray-500 uppercase">W-Wallet</p><p id="withdraw-wallet-display" class="text-white text-[10px] font-bold">₹0.00</p></div>
+                <div class="card-bg p-3"><p class="text-[8px] text-gray-500 uppercase">W-Wallet</p><p id="withdraw-wallet-display" class="text-[10px] font-bold">₹0.00</p></div>
                 <div class="card-bg p-3"><p class="text-[8px] text-gray-500 uppercase">V-Limit</p><p class="text-green-500 text-[10px] font-bold">Max</p></div>
             </div>
 
@@ -132,7 +151,7 @@
                 <!-- Global Search Bar -->
                 <div class="mb-6 relative">
                     <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs"></i>
-                    <input type="text" id="market-search" oninput="searchMarket(this.value)" class="w-full bg-black border border-gray-800 p-4 pl-10 rounded-2xl text-sm focus:border-yellow-500 transition-all" placeholder="Search any symbol (e.g. AAPL, BTC, USDINR)...">
+                    <input type="text" id="market-search" oninput="searchMarket(this.value)" class="w-full p-4 pl-10 rounded-2xl text-sm focus:border-yellow-500 transition-all" placeholder="Search any symbol (e.g. AAPL, BTC, USDINR)...">
                 </div>
                 <div class="flex gap-2 overflow-x-auto pb-4 no-scrollbar">
                     <button onclick="setFilter('all', this)" class="filter-btn filter-active">All</button>
@@ -201,11 +220,11 @@
             <!-- AI CHAT INTERFACE -->
             <div id="ai-support-view" class="flex flex-col h-[60vh]">
                 <div id="ai-chat-box" class="flex-1 overflow-y-auto no-scrollbar chat-container mb-4 p-2">
-                    <div class="ai-bubble p-3 text-[11px] max-w-[85%] leading-relaxed">
+                    <div id="ai-intro-text" class="ai-bubble p-3 text-[11px] max-w-[85%] leading-relaxed">
                         Namaste! Main The Forex Room ka AI assistant hoon. Main aapki withdrawal, deposit aur trading mein help kar sakta hoon. Aap apna sawaal puchiye.
                     </div>
                 </div>
-                <div class="flex gap-2 bg-[#1c2128] p-2 rounded-2xl border border-gray-800">
+                <div class="flex gap-2 p-2 rounded-2xl border border-gray-800">
                     <input type="text" id="ai-input" class="flex-1 bg-transparent text-xs p-2 outline-none" placeholder="Type here (e.g. Withdrawal issue)...">
                     <button onclick="sendMessageToAI()" class="bg-yellow-500 text-black w-10 h-10 rounded-xl flex items-center justify-center"><i class="fas fa-paper-plane"></i></button>
                 </div>
@@ -215,7 +234,7 @@
             <div id="manual-support-view" class="hidden">
                 <div class="card-bg p-6 mb-6">
                     <p class="text-xs text-gray-400 mb-4 leading-relaxed">Agar AI aapki help nahi kar pa raha, toh humein manual ticket bhejein. Humara team 12-24 hours mein reply karegi.</p>
-                    <textarea id="support-msg" class="w-full bg-black border border-gray-800 p-4 rounded-xl text-sm mb-4 h-32" placeholder="Describe your issue here..."></textarea>
+                    <textarea id="support-msg" class="w-full p-4 rounded-xl text-sm mb-4 h-32" placeholder="Describe your issue here..."></textarea>
                     <button onclick="sendSupportTicket()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-bold uppercase text-xs tracking-widest">Submit Ticket</button>
                 </div>
                 <h3 class="text-[10px] font-bold text-gray-500 uppercase mb-4">Your Recent Tickets</h3>
@@ -256,7 +275,7 @@
             </div>
 
             <!-- 3. Bottom Section - Trading Controls -->
-            <div class="bg-[#1c2128] rounded-2xl p-4 border border-gray-800 mb-6 shadow-2xl">
+            <div class="card-bg rounded-2xl p-4 mb-6 shadow-2xl">
                 <!-- Lot Selector -->
                 <div class="flex items-center justify-between mb-4 bg-black/40 p-1 rounded-xl border border-gray-800/50">
                     <button onclick="changePanelLot(-0.01)" class="w-10 h-10 text-gray-400 hover:text-white transition text-xl font-bold">−</button>
@@ -268,7 +287,7 @@
 
                 <!-- Order Type Selector -->
                 <div class="flex items-center justify-between mb-4 px-1">
-                    <select id="panel-order-type" onchange="toggleLimitInput()" class="bg-gray-800/50 text-[10px] font-black text-white uppercase px-3 py-2 rounded-lg border border-gray-700 outline-none">
+                    <select id="panel-order-type" onchange="toggleLimitInput()" class="bg-transparent text-[10px] font-black uppercase px-3 py-2 rounded-lg border border-gray-700 outline-none">
                         <option value="MARKET">Market Order</option>
                         <option value="LIMIT">Limit Order</option>
                     </select>
@@ -278,7 +297,7 @@
                 <!-- Limit Price Input (Hidden by default) -->
                 <div id="limit-price-container" class="hidden mb-4 px-1">
                     <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Entry Price</p>
-                    <input type="number" id="limit-entry-price" step="0.01" class="w-full bg-black border border-yellow-500/50 p-3 rounded-lg text-sm font-bold text-yellow-500" placeholder="0.00">
+                    <input type="number" id="limit-entry-price" step="0.01" class="w-full border border-yellow-500/50 p-3 rounded-lg text-sm font-bold text-yellow-500" placeholder="0.00">
                 </div>
 
                 <!-- SL/TP Checkbox -->
@@ -291,11 +310,11 @@
                 <div id="panel-tpsl-inputs" class="hidden grid grid-cols-2 gap-4 mb-6 px-1">
                     <div class="flex-1">
                         <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Stop Loss</p>
-                        <input type="number" id="stop-loss" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center text-red-500 font-bold" placeholder="0.00">
+                        <input type="number" id="stop-loss" step="0.01" class="w-full p-3 rounded-lg text-xs text-center text-red-500 font-bold" placeholder="0.00">
                     </div>
                     <div class="flex-1">
                         <p class="text-[9px] text-gray-500 uppercase font-bold mb-1">Take Profit</p>
-                        <input type="number" id="take-profit" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-lg text-xs text-center text-green-500 font-bold" placeholder="0.00">
+                        <input type="number" id="take-profit" step="0.01" class="w-full p-3 rounded-lg text-xs text-center text-green-500 font-bold" placeholder="0.00">
                     </div>
                 </div>
 
@@ -330,7 +349,7 @@
         <div id="profile" class="section">
             <div class="text-center py-4 border-b border-gray-800 mb-6">
                 <div class="flex justify-center items-center mb-3">
-                <div class="w-20 h-20 bg-gray-800 rounded-full mx-auto flex items-center justify-center text-3xl mb-3 border border-yellow-500 text-yellow-500">
+                <div class="w-20 h-20 bg-yellow-500/10 rounded-full mx-auto flex items-center justify-center text-3xl mb-3 border border-yellow-500 text-yellow-500">
                     <i class="fas fa-user-tie"></i>
                 </div>
                 </div>
@@ -357,7 +376,7 @@
             <div class="grid grid-cols-3 gap-2 mb-6 text-center">
                 <div class="card-bg p-3 border border-gray-800/50">
                     <p class="text-[7px] text-gray-500 uppercase">Total Trades</p>
-                    <p id="stat-total-trades" class="font-bold text-sm text-white">0</p>
+                    <p id="stat-total-trades" class="font-bold text-sm">0</p>
                 </div>
                 <div class="card-bg p-3 border border-gray-800/50">
                     <p class="text-[7px] text-gray-500 uppercase">Win Rate</p>
@@ -374,21 +393,21 @@
                 <div onclick="switchPage('deposit-step-1')" class="text-center cursor-pointer"><i class="fas fa-plus-circle block mb-1 text-yellow-500"></i><span class="text-[9px]">Deposit</span></div>
                 <div onclick="switchPage('transfer-funds-page')" class="text-center cursor-pointer"><i class="fas fa-exchange-alt block mb-1"></i><span class="text-[9px]">Transfer</span></div> 
                 <div onclick="openWithdraw()" class="text-center cursor-pointer"><i class="fas fa-minus-circle block mb-1 text-yellow-500"></i><span class="text-[9px]">Withdraw</span></div> 
-                <div onclick="openServiceModal('V-Wallet', 'Your current virtual balance: ₹' + currentUserData.wallet.equity)" class="text-center cursor-pointer"><i class="fas fa-wallet block mb-1"></i><span class="text-[9px]">V-Wallet</span></div>
+                <div onclick="openWithdrawWalletModal()" class="text-center cursor-pointer"><i class="fas fa-wallet block mb-1 text-purple-500"></i><span class="text-[9px]">W-Wallet</span></div>
             </div>
 
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Services & Rewards</p>
             <div class="card-bg p-4 space-y-4 mb-6">
-                <div class="flex justify-between items-center text-sm"><span>Chart Theme (Dark/Light)</span><input type="checkbox" id="chart-theme-toggle" onchange="renderMarket()"></div>
-                <div onclick="openServiceModal('Coupons', 'Enter code: <input type=\'text\' class=\'bg-black p-1 rounded mt-2 w-full\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Coupons & Promos</span><i class="fas fa-chevron-right text-gray-600"></i></div>
+                <div class="flex justify-between items-center text-sm"><span>Dark Mode</span><input type="checkbox" id="theme-toggle" onchange="toggleTheme()" checked></div>
+                <div onclick="openServiceModal('Coupons', 'Enter code: <input type=\'text\' class=\'p-1 rounded mt-2 w-full\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Coupons & Promos</span><i class="fas fa-chevron-right text-gray-600"></i></div>
                 <div onclick="openServiceModal('Staking', 'Earn 5% APY on your idle balance. <button class=\'bg-yellow-500 text-black px-2 py-1 rounded block mt-2\'>Enable</button>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Earn (Staking)</span><i class="fas fa-chevron-right text-gray-600"></i></div>
             </div>
 
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Settings & Other</p>
             <div class="card-bg p-4 space-y-4 mb-10">
-                <div onclick="openServiceModal('Price Alerts', 'Set target for BTC: <input type=\'number\' class=\'bg-black p-1 rounded\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Price Alerts</span><i class="fas fa-bell"></i></div>
+                <div onclick="openServiceModal('Price Alerts', 'Set target for BTC: <input type=\'number\' class=\'p-1 rounded\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Price Alerts</span><i class="fas fa-bell"></i></div>
                 <div class="flex justify-between items-center text-sm cursor-pointer"><span>Security (2FA)</span><input type="checkbox" id="two-factor-toggle" onchange="toggle2FA()"></div>
-                <div onclick="openServiceModal('Referral Program', 'Your code: <span class=\'text-white\'>' + currentUserData.myReferralCode + '</span><br><br>Earn 10% commission on every deposit made by your referrals.')" class="flex justify-between items-center text-sm text-yellow-500 font-bold cursor-pointer"><span>IB Partner Program</span><i class="fas fa-briefcase"></i></div>
+                <div onclick="openServiceModal('Referral Program', 'Your code: <span class=\'text-yellow-500 font-bold\'>' + currentUserData.myReferralCode + '</span><br><br>Earn 10% commission on every deposit made by your referrals.')" class="flex justify-between items-center text-sm text-yellow-500 font-bold cursor-pointer"><span>IB Partner Program</span><i class="fas fa-briefcase"></i></div>
             </div>
 
             <button onclick="logout()" class="w-full p-4 text-red-500 font-bold uppercase text-xs tracking-widest border border-red-500/20 rounded-xl">Sign Out</button>
@@ -417,11 +436,11 @@
             </div>
 
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Deposit Amount (INR)</p>
-            <input type="number" id="dep-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-6 text-2xl font-black text-yellow-500" placeholder="0.00">
+            <input type="number" id="dep-amount-input" class="w-full p-5 rounded-xl mb-6 text-2xl font-black text-yellow-500" placeholder="0.00">
 
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Apply Coupon</p>
             <div class="flex gap-2 mb-8">
-                <input type="text" id="coupon-input" class="flex-1 bg-black border border-gray-800 p-4 rounded-xl text-sm" placeholder="Enter Code">
+                <input type="text" id="coupon-input" class="flex-1 p-4 rounded-xl text-sm" placeholder="Enter Code">
                 <button onclick="applyCoupon()" class="bg-gray-800 px-6 rounded-xl font-bold text-[10px] uppercase">Apply</button>
             </div>
 
@@ -451,7 +470,7 @@
                 <p class="text-[11px] text-green-400"><i class="fas fa-check-circle mr-2"></i>Wallet Activation is <b>ACTIVE</b>. You can transfer funds without any additional fees.</p>
             </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Transfer Amount (₹)</p>
-            <input type="number" id="transfer-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
+            <input type="number" id="transfer-amount-input" class="w-full p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
             <button onclick="initiateWalletTransfer()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Pay Fee & Transfer</button>
         </div>
 
@@ -463,11 +482,11 @@
             </div>
             <div class="card-bg p-6 mb-8">
                 <p class="text-[10px] text-gray-500 uppercase mb-2 font-bold tracking-widest">Withdrawal Wallet Balance</p>
-                <p id="withdraw-wallet-bal" class="text-3xl font-black text-white">₹0.00</p>
+                <p id="withdraw-wallet-bal" class="text-3xl font-black">₹0.00</p>
                 <p id="withdraw-last-update" class="text-[9px] text-gray-500 mt-4 uppercase">Last updated: Just Now</p>
             </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Amount to Withdraw (₹)</p>
-            <input type="number" id="withdraw-amount-input" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
+            <input type="number" id="withdraw-amount-input" class="w-full p-5 rounded-xl mb-10 text-xl font-black text-yellow-500" placeholder="0.00">
             <button onclick="proceedToWithdrawMethods()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase">Continue</button>
         </div>
 
@@ -497,23 +516,23 @@
                     <h3 class="font-black text-yellow-500">ADD METHOD</h3>
                     <button onclick="document.getElementById('add-method-modal').classList.add('hidden')" class="text-2xl">&times;</button>
                 </div>
-                <select id="method-type-select" onchange="toggleMethodInputs()" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-xs font-bold uppercase">
+                <select id="method-type-select" onchange="toggleMethodInputs()" class="w-full p-4 rounded-xl mb-4 text-xs font-bold uppercase">
                     <option value="upi">UPI ID</option>
                     <option value="bank">Bank Transfer</option>
                     <option value="crypto">Crypto Address</option>
                 </select>
                 
                 <div id="upi-inputs" class="method-fields">
-                    <input type="text" id="new-upi-id" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-sm" placeholder="example@upi">
+                    <input type="text" id="new-upi-id" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="example@upi">
                 </div>
                 <div id="bank-inputs" class="method-fields hidden">
-                    <input type="text" id="bank-name" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-2 text-sm" placeholder="Bank Name">
-                    <input type="text" id="bank-acc" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-2 text-sm" placeholder="Account Number">
-                    <input type="text" id="bank-ifsc" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-2 text-sm" placeholder="IFSC Code">
-                    <input type="text" id="bank-holder" class="w-full bg-black border border-gray-700 p-4 rounded-xl mb-4 text-sm" placeholder="Holder Name">
+                    <input type="text" id="bank-name" class="w-full p-4 rounded-xl mb-2 text-sm" placeholder="Bank Name">
+                    <input type="text" id="bank-acc" class="w-full p-4 rounded-xl mb-2 text-sm" placeholder="Account Number">
+                    <input type="text" id="bank-ifsc" class="w-full p-4 rounded-xl mb-2 text-sm" placeholder="IFSC Code">
+                    <input type="text" id="bank-holder" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Holder Name">
                 </div>
                 <div id="crypto-inputs" class="method-fields hidden">
-                    <input type="text" id="crypto-addr" class="w-full bg-black border border-gray-800 p-4 rounded-xl mb-4 text-sm" placeholder="USDT (TRC20) Address">
+                    <input type="text" id="crypto-addr" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="USDT (TRC20) Address">
                 </div>
                 
                 <button onclick="savePaymentMethod()" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase">Add Account</button>
@@ -550,7 +569,7 @@
                 <h2 class="text-xl font-bold uppercase italic">UPI Details</h2>
             </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Phone Number (For Verification)</p>
-            <input type="tel" id="user-phone" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold" placeholder="+91 XXXXX XXXXX">
+            <input type="tel" id="user-phone" class="w-full p-5 rounded-xl mb-10 text-xl font-bold" placeholder="+91 XXXXX XXXXX">
             <div class="card-bg p-4 mb-10">
                 <p class="text-[10px] text-gray-500 mb-2">Merchant UPI ID</p>
                 <p class="font-mono text-yellow-500 text-lg">arfatraza022-1@oksbi</p>
@@ -588,7 +607,7 @@
                 <p class="text-xs text-gray-400">Please enter the 12-digit UTR / Transaction ID from your payment app to confirm your deposit.</p>
             </div>
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3 text-center">UTR / Transaction Number</p>
-            <input type="number" id="utr-number" class="w-full bg-black border border-gray-800 p-5 rounded-xl mb-10 text-xl font-bold tracking-[0.2em] text-center text-yellow-500" placeholder="000000000000">
+            <input type="number" id="utr-number" class="w-full p-5 rounded-xl mb-10 text-xl font-bold tracking-[0.2em] text-center text-yellow-500" placeholder="000000000000">
             <button onclick="submitUTR()" class="w-full bg-yellow-500 text-black py-5 rounded-2xl font-black uppercase shadow-lg shadow-yellow-500/20">Submit for Approval</button>
         </div>
 
@@ -667,7 +686,7 @@
             <div class="mb-6">
                 <h3 class="text-xs font-bold text-gray-500 uppercase mb-4">Quick Funds Control</h3>
                 <div class="flex gap-2">
-                    <input type="number" id="admin-adj-val" class="flex-1 bg-black p-4 rounded-xl border border-gray-700" placeholder="Amount">
+                    <input type="number" id="admin-adj-val" class="flex-1 p-4 rounded-xl border border-gray-700" placeholder="Amount">
                     <button onclick="adminAdjustUserBalance(1)" class="bg-green-600 px-6 rounded-xl font-bold">ADD</button>
                     <button onclick="adminAdjustUserBalance(-1)" class="bg-red-600 px-6 rounded-xl font-bold">SUB</button>
                 </div>
@@ -723,11 +742,11 @@
                 <div class="grid grid-cols-2 gap-4">
                     <div>
                         <p class="text-[9px] text-gray-500 uppercase mb-1">Stop Loss</p>
-                        <input type="number" id="edit-sl" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-xl text-xs text-center text-red-500 font-bold">
+                        <input type="number" id="edit-sl" step="0.01" class="w-full p-3 rounded-xl text-xs text-center text-red-500 font-bold">
                     </div>
                     <div>
                         <p class="text-[9px] text-gray-500 uppercase mb-1">Take Profit</p>
-                        <input type="number" id="edit-tp" step="0.01" class="w-full bg-black border border-gray-700 p-3 rounded-xl text-xs text-center text-green-500 font-bold">
+                        <input type="number" id="edit-tp" step="0.01" class="w-full p-3 rounded-xl text-xs text-center text-green-500 font-bold">
                     </div>
                 </div>
             </div>
@@ -735,7 +754,7 @@
             <div class="border-t border-gray-800 pt-6 mb-6">
                 <p class="text-[9px] text-gray-500 uppercase font-bold mb-2">Partial Close (Lot)</p>
                 <div class="flex gap-2">
-                    <input type="number" id="partial-close-lot" step="0.01" value="0.01" class="flex-1 bg-black border border-gray-700 p-3 rounded-xl text-sm font-bold text-center">
+                    <input type="number" id="partial-close-lot" step="0.01" value="0.01" class="flex-1 p-3 rounded-xl text-sm font-bold text-center">
                     <button onclick="handlePartialClose()" class="bg-red-600/20 text-red-500 border border-red-500/50 px-4 rounded-xl font-bold text-[10px] uppercase">Close Part</button>
                 </div>
             </div>
@@ -771,11 +790,11 @@
                 </div>
                 <div id="invest-utr-container" class="hidden mb-6 text-left">
                     <p class="text-[10px] text-gray-500 uppercase font-bold mb-2 text-center">Enter 12-Digit UTR Number</p>
-                    <input type="number" id="invest-utr" class="w-full bg-black border border-gray-700 p-4 rounded-xl text-center text-xl font-bold tracking-[0.2em] text-yellow-500" placeholder="000000000000">
+                    <input type="number" id="invest-utr" class="w-full p-4 rounded-xl text-center text-xl font-bold tracking-[0.2em] text-yellow-500" placeholder="000000000000">
                 </div>
                 <div class="mb-8">
                     <p class="text-[10px] text-gray-500 uppercase font-bold mb-1">Amount to Pay</p>
-                    <h2 id="invest-pay-amt" class="text-3xl font-black text-white">₹0.00</h2>
+                    <h2 id="invest-pay-amt" class="text-3xl font-black">₹0.00</h2>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="openInvestmentPayment(currentInvestData.offerId, currentInvestData.amount)" class="flex-1 bg-gray-800 text-gray-400 py-4 rounded-xl font-bold uppercase text-[10px]">Back</button>
@@ -1397,6 +1416,13 @@
             showToast("Ticket submitted! Our team will reply shortly.", "success");
         }
 
+        function toggleTheme() {
+            const isDark = document.getElementById('theme-toggle').checked;
+            document.body.classList.toggle('dark-mode', isDark);
+            document.body.classList.toggle('light-mode', !isDark);
+            renderMarket(); // Refresh charts if needed
+        }
+
         function loadSupportTickets(uid) {
             db.collection('support_tickets').where('userId', '==', uid).onSnapshot({ includeMetadataChanges: true },
                 snap => {
@@ -1464,6 +1490,13 @@
         // --- AI SUPPORT ENGINE (GEMINI) ---
         function toggleSupportTab(type) {
             const isAI = type === 'ai';
+            if(isAI) {
+                const hour = new Date().getHours();
+                let greet = "Good Evening";
+                if (hour < 12) greet = "Good Morning";
+                else if (hour < 17) greet = "Good Afternoon";
+                document.getElementById('ai-intro-text').innerText = `${greet}! I'm Rosy, your chat assistant for The Forex Room. Main aapki withdrawal, deposit aur trading mein help kar sakti hoon. Aap apna sawaal puchiye.`;
+            }
             document.getElementById('ai-support-view').classList.toggle('hidden', !isAI);
             document.getElementById('manual-support-view').classList.toggle('hidden', isAI);
             document.getElementById('tab-ai-btn').className = isAI ? "flex-1 py-2 text-[10px] font-bold uppercase rounded-lg bg-yellow-500 text-black" : "flex-1 py-2 text-[10px] font-bold uppercase rounded-lg text-gray-500";
@@ -1490,6 +1523,7 @@
                 // CONTEXT FOR AI
                 const systemInstruction = `
                 You are 'The Forex Room' Official AI Assistant. 
+                Your name is Rosy. You are the official AI chat assistant for 'The Forex Room'. 
                 User Context:
                 - Name: ${d.name}
                 - Trading Balance (Equity): ₹${d.wallet.equity}
@@ -1502,6 +1536,9 @@
                 Core Rules:
                 1. Direct Answers Only: Sirf user ke sawal ka jawab do. Bina puche account summary, balance, ya pending phases mat batao.
                 2. Reply in Hinglish (Hindi + English). Professional aur short replies rakho.
+                1. Greeting & Identity: Always identify yourself as Rosy. Start your first reply with a time-appropriate greeting (Good Morning/Afternoon/Evening) if the conversation just started.
+                2. Language Matching (STRICT): If the user speaks in English, reply in professional English. If the user uses Hinglish, reply in Hinglish. Match the user's tone.
+                3. Direct Answers Only: Sirf user ke sawal ka jawab do. Bina puche account summary, balance, ya pending phases mat batao.
                 3. Sequential Disclosure (ULTRA STRICT):
                    - IF HAS_DEPOSITED IS FALSE: Kabhi bhi 'Phase', 'Activation Fee', '₹5,850', 'GST' ya kisi bhi charge ka naam mat lena. Agar user puche "Charges lagenge?", toh bolo "Trading shuru karne ke liye koi upfront fees nahi hai, aap bas deposit karke start kar sakte hain."
                    - IF PHASE 1 PENDING: Jab user withdrawal ya charges puche, tabhi sirf Phase 1 (Activation ₹5,850) batao. 
@@ -1760,6 +1797,17 @@
             modal.classList.remove('hidden');
         }
 
+        function openWithdrawWalletModal() {
+            const bal = (currentUserData?.wallet?.withdrawalWallet || 0).toFixed(2);
+            openServiceModal('Withdrawal Wallet', `
+                <div class="text-center py-4">
+                    <p class="text-xs text-gray-500 uppercase font-bold mb-2">Available for Withdrawal</p>
+                    <h2 class="text-3xl font-black text-yellow-500">₹${bal}</h2>
+                    <p class="text-[10px] text-gray-400 mt-4">Transfer funds from main equity to increase this balance.</p>
+                </div>
+            `);
+        }
+
         function closeServiceModal() {
             history.back(); // Use history to sync back button
         }
@@ -1943,7 +1991,7 @@
         
         // Real-time update of header equity
         document.getElementById('user-equity').innerText = "₹" + currentEquity.toFixed(2);
-        document.getElementById('user-equity').className = currentEquity < 0 ? "text-4xl font-black mb-6 text-red-500" : "text-4xl font-black mb-6";
+            document.getElementById('user-equity').classList.toggle("text-red-500", currentEquity < 0);
 
         if (currentEquity <= 0 && totalPnl < 0) { // Only liquidate if equity is wiped by negative PnL
             showToast("MARGIN CALL: Positions liquidated due to zero equity.", "error");
@@ -2076,7 +2124,7 @@
                             hhtml += `
                             <div class="p-4 card-bg flex justify-between items-center border-l-4 ${trx.status === 'COMPLETED' ? 'border-green-500' : 'border-yellow-500'}">
                                 <div><p class="font-bold text-xs uppercase">${statusText}</p><p class="text-[8px] text-gray-500">${trx.utr || 'N/A'}</p></div>
-                                <p class="font-bold text-sm text-white">${amountText}</p>
+                                <p class="font-bold text-sm">${amountText}</p>
                             </div>`;
                         });
                         list.innerHTML = hhtml;
@@ -2095,7 +2143,7 @@
                         hhtml += `
                         <div class="p-4 card-bg flex justify-between items-center border-l-4 ${trx.status === 'COMPLETED' ? 'border-green-500' : 'border-yellow-500'}">
                             <div><p class="font-bold text-xs uppercase">${trx.type.replace(/_/g, ' ')}</p><p class="text-[8px] text-gray-500">${trx.status}</p></div>
-                            <p class="font-bold text-sm text-white">₹${trx.amount.toFixed(2)}</p>
+                            <p class="font-bold text-sm">₹${trx.amount.toFixed(2)}</p>
                         </div>`;
                     });
                     list.innerHTML = hhtml;
@@ -2234,12 +2282,12 @@
                 snap.forEach(doc => {
                     const o = doc.data();
                     container.innerHTML += `
-                    <div class="card-bg p-6 border-l-4 border-yellow-500 relative overflow-hidden group">
+                    <div class="card-bg p-5 md:p-6 border-l-4 border-yellow-500 relative overflow-hidden group">
                         <div class="absolute right-[-10px] top-[-10px] text-yellow-500/5 text-6xl font-black italic group-hover:scale-110 transition-transform">PRO</div>
                         <div class="flex justify-between items-start mb-6">
                             <div>
                                 <p class="text-[10px] text-yellow-500 font-black uppercase tracking-widest mb-1 italic">Investment Session</p>
-                                <h3 class="text-2xl font-black text-white">₹${o.amount.toLocaleString('en-IN')}</h3>
+                                <h3 class="text-2xl font-black">₹${o.amount.toLocaleString('en-IN')}</h3>
                             </div>
                             <div class="text-right">
                                 <p class="text-[9px] text-gray-500 uppercase font-bold">Estimated Profit</p>
@@ -2247,8 +2295,8 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-4 mb-6">
-                            <div class="bg-gray-800/50 px-3 py-1 rounded text-[9px] font-bold text-gray-300 uppercase italic border border-gray-700"><i class="far fa-clock mr-1"></i> ${o.sessionTime}</div>
-                            <div class="bg-gray-800/50 px-3 py-1 rounded text-[9px] font-bold text-gray-300 uppercase italic border border-gray-700"><i class="fas fa-shield-alt mr-1"></i> Verified</div>
+                            <div class="bg-yellow-500/10 px-3 py-1 rounded text-[9px] font-bold text-yellow-600 dark:text-yellow-500 uppercase italic border border-yellow-500/20"><i class="far fa-clock mr-1"></i> ${o.sessionTime}</div>
+                            <div class="bg-yellow-500/10 px-3 py-1 rounded text-[9px] font-bold text-yellow-600 dark:text-yellow-500 uppercase italic border border-yellow-500/20"><i class="fas fa-shield-alt mr-1"></i> Verified</div>
                         </div>
                         <p class="text-[11px] text-gray-500 mb-6 leading-relaxed italic">${o.description || 'Join our premium high-yield trading session managed by experts.'}</p>
                         <button onclick="openInvestmentPayment('${doc.id}', ${o.amount})" class="w-full bg-yellow-500 text-black py-4 rounded-xl font-black uppercase tracking-widest text-[11px] hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-yellow-500/10">Apply For Session</button>
