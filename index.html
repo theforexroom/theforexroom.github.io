@@ -67,7 +67,7 @@
         .chat-container { display: flex; flex-direction: column; gap: 10px; }
     </style>
 </head>
-<body class="dark-mode"> <!-- Defaulting to dark as it's a trading app, but switchable -->
+<body class="light-mode"> <!-- Default set to Light Mode -->
 
     <div id="auth-container" class="flex items-center justify-center min-h-screen p-6">
         <div class="w-full max-w-md">
@@ -398,7 +398,7 @@
 
             <p class="text-[10px] font-bold text-gray-500 uppercase mb-3">Services & Rewards</p>
             <div class="card-bg p-4 space-y-4 mb-6">
-                <div class="flex justify-between items-center text-sm"><span>Dark Mode</span><input type="checkbox" id="theme-toggle" onchange="toggleTheme()" checked></div>
+                <div class="flex justify-between items-center text-sm"><span>Dark Mode</span><input type="checkbox" id="theme-toggle" onchange="toggleTheme()"></div>
                 <div onclick="openServiceModal('Coupons', 'Enter code: <input type=\'text\' class=\'p-1 rounded mt-2 w-full\'>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Coupons & Promos</span><i class="fas fa-chevron-right text-gray-600"></i></div>
                 <div onclick="openServiceModal('Staking', 'Earn 5% APY on your idle balance. <button class=\'bg-yellow-500 text-black px-2 py-1 rounded block mt-2\'>Enable</button>')" class="flex justify-between items-center text-sm cursor-pointer"><span>Earn (Staking)</span><i class="fas fa-chevron-right text-gray-600"></i></div>
             </div>
@@ -2563,9 +2563,9 @@
                             <p class="font-bold text-sm">${entry.displayName}</p>
                         </div>
                         <div class="grid grid-cols-3 gap-2 text-center">
-                            <div class="bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Profit</p><p class="text-[10px] font-bold text-green-500">₹${(entry.displayProfit || 0).toLocaleString('en-IN')}</p></div>
-                            <div class="bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Winrate</p><p class="text-[10px] font-bold text-blue-400">${entry.winRate || 0}%</p></div>
-                            <div class="bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Withdrawn</p><p class="text-[10px] font-bold text-purple-400">₹${(entry.totalWithdrawn || 0).toLocaleString('en-IN')}</p></div>
+                            <div class="bg-gray-100 dark:bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Profit</p><p class="text-[10px] font-bold text-green-500">₹${(entry.displayProfit || 0).toLocaleString('en-IN')}</p></div>
+                            <div class="bg-gray-100 dark:bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Winrate</p><p class="text-[10px] font-bold text-blue-400">${entry.winRate || 0}%</p></div>
+                            <div class="bg-gray-100 dark:bg-black/40 p-2 rounded-lg"><p class="text-[7px] text-gray-500 uppercase">Withdrawn</p><p class="text-[10px] font-bold text-purple-400">₹${(entry.totalWithdrawn || 0).toLocaleString('en-IN')}</p></div>
                         </div>
                     </div>`;
                 });
