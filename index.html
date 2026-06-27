@@ -912,6 +912,7 @@
         let searchResults = [];
         let currentFilter = 'all';
         let priceSocket;
+        let pricesListenerUnsub = null;
         // GLOBAL DEPOSIT STATE
         let lastTradesFingerprint = ""; // To prevent unnecessary re-renders of trade list structure
         let currentTradePrice = 0; // To store the current mid-price for the active trade panel symbol
@@ -1041,7 +1042,7 @@
                     qhtml += `
                     <div onclick="setupTradePanel('${item.s}')" class="flex justify-between items-center p-4 card-bg cursor-pointer hover:bg-gray-800 transition">
                         <div><p class="font-bold text-sm">${item.s}</p><p class="text-[9px] text-gray-500 font-bold">${item.n}</p></div>
-                        <p class="font-mono font-bold text-green-500 text-sm">${item.p.toFixed(2)}</p>
+                        <p id="quick-price-${item.s}" class="font-mono font-bold text-green-500 text-sm">${item.p > 0 ? item.p.toFixed(2) : 'Fetching...'}</p>
                     </div>`;
                 });
                 qlist.innerHTML = qhtml;
@@ -1059,6 +1060,24 @@
                 case 'metals': return 0.05; // 5 cents for metals
                 case 'crypto': return item.p * 0.0005; // 0.05% of price for crypto
                 default: return 0.1; // Default for others
+            }
+        }
+
+        function updateUIPrice(symbol, price) {
+            const item = marketItems.find(m => m.s === symbol);
+            if (!item) return;
+            
+            const decimals = item.cat === 'forex' ? 4 : 2;
+            const text = price > 0 ? price.toFixed(decimals) : 'Fetching...';
+            
+            const listEl = document.getElementById(`list-price-${symbol}`);
+            if (listEl) {
+                listEl.innerText = text;
+            }
+            
+            const quickEl = document.getElementById(`quick-price-${symbol}`);
+            if (quickEl) {
+                quickEl.innerText = text;
             }
         }
 
@@ -1083,14 +1102,53 @@
                 const item = marketItems.find(m => m.s === mappedSymbol);
                 if(item) {
                     item.p = parseFloat(data.c);
+                    
+                    // Live UI element text update for smooth binding
+                    updateUIPrice(mappedSymbol, item.p);
+                    
                     if (mappedSymbol === currentPanelSymbol) {
                         currentTradePrice = item.p; // Update current trade price for panel
                         setPanelSide(activePanelSide); // Refresh panel prices
                     }
-                    // Immediate PnL update for open trades
+                    // Immediate PnL update and auto order trigger check for open trades
                     updateLivePnL();
+                    checkAutoExecution();
                 }
             };
+        }
+
+        // REAL-TIME API (FIRESTORE) FOR FOREX/METALS/COMMODITIES
+        function initFirestorePrices() {
+            if (pricesListenerUnsub) {
+                pricesListenerUnsub();
+            }
+            // Snapshot listener on 'prices' collection so database edits trigger immediate UI updates
+            pricesListenerUnsub = db.collection('prices').onSnapshot(snap => {
+                snap.forEach(doc => {
+                    const symbol = doc.id.toUpperCase();
+                    const data = doc.data();
+                    const price = parseFloat(data.price);
+                    
+                    if (!isNaN(price)) {
+                        const item = marketItems.find(m => m.s === symbol);
+                        if (item) {
+                            item.p = price;
+                            
+                            // Live UI element text update for smooth binding
+                            updateUIPrice(symbol, item.p);
+                            
+                            if (symbol === currentPanelSymbol) {
+                                currentTradePrice = item.p; // Update current trade price for panel
+                                setPanelSide(activePanelSide); // Refresh panel prices
+                            }
+                        }
+                    }
+                });
+                updateLivePnL();
+                checkAutoExecution();
+            }, err => {
+                console.warn("Firestore prices real-time listener failed or permission denied:", err);
+            });
         }
 
         // AUTH STATE
@@ -1220,9 +1278,14 @@
                 loadUserOffers(); // Load Premium Offers
                 loadProfileStats(user.uid); // Load Profile Analytics
                 initPriceSocket();
+                initFirestorePrices();
             } else {
                 document.getElementById('auth-container').classList.remove('hidden');
                 document.getElementById('app-container').classList.add('hidden');
+                if (pricesListenerUnsub) {
+                    pricesListenerUnsub();
+                    pricesListenerUnsub = null;
+                }
             }
         });
 
@@ -1723,6 +1786,9 @@
             if(target) {
                 target.scrollTop = 0;
                 target.classList.add('section-active');
+                if (p === 'home') {
+                    renderMarket();
+                }
             }
 
             // Auto-hide all modals whenever we switch page or go back
@@ -2285,7 +2351,7 @@
             e.classList.add('filter-active'); 
             renderMarket(); 
         }
-        function logout() { auth.signOut(); location.reload(); }
+        function logout() { if (pricesListenerUnsub) pricesListenerUnsub(); auth.signOut(); location.reload(); }
 
         // --- INVESTMENT OFFERS LOGIC ---
         function loadUserOffers() {
@@ -2623,10 +2689,12 @@
             });
         }
 
-        // Only render market if the home section is active to save resources
+        // Only render market periodically as a backup to save resources and prevent scroll/flicker issues
         setInterval(() => {
-            if (document.getElementById('home').classList.contains('section-active')) renderMarket();
-        }, 1000); 
+            if (document.getElementById('home').classList.contains('section-active') && searchResults.length === 0) {
+                renderMarket();
+            }
+        }, 10000); 
     </script>
 </body>
 </html>
