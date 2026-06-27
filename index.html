@@ -82,7 +82,7 @@
                     <input type="tel" id="user-phone-reg" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Phone Number">
                     <input type="text" id="reg-referral-code" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Referral Code (Optional)">
                 </div>
-                <input type="text" id="user-email" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Email Address">
+                <input type="text" id="user-email" class="w-full p-4 rounded-xl mb-4 text-sm" placeholder="Email or Phone Number">
                 <input type="password" id="user-password" class="w-full p-4 rounded-xl mb-6 text-sm" placeholder="Password">
                 <button onclick="handleAuth()" id="auth-btn" class="w-full bg-yellow-500 text-black font-black p-4 rounded-xl uppercase tracking-widest active:scale-95 transition">Sign In</button>
                 <p class="text-center mt-6 text-gray-500 text-xs">
@@ -1346,7 +1346,7 @@
             document.getElementById('auth-btn').innerText = isLogin ? 'Login' : 'Register';
             document.getElementById('auth-switch-text').innerText = isLogin ? 'New to the platform?' : 'Already have an account?';
             document.getElementById('auth-toggle-btn').innerText = isLogin ? 'Create Account' : 'Sign In';
-            document.getElementById('user-email').placeholder = isLogin ? 'Email Address' : 'Email Address (Optional)';
+            document.getElementById('user-email').placeholder = isLogin ? 'Email or Phone Number' : 'Email Address (Optional)';
         }
 
         async function handleAuth() {
@@ -1358,8 +1358,6 @@
 
             if (isLogin) {
                 if (!email || !pass) return showToast("Please enter login details", "error");
-                // Support phone number login by generating dummy email format if no '@' found
-                if (!email.includes('@')) email = email + "@theforexroom.com";
             } else {
                 if (!pass) return showToast("Please enter a password", "error");
                 if (!document.getElementById('user-name').value) return showToast("Please enter your full name", "error");
@@ -1370,8 +1368,22 @@
             try {
                 btn.innerText = "Processing...";
                 btn.disabled = true; // Disable button during processing
-                if(isLogin) await auth.signInWithEmailAndPassword(email, pass);
-                else {
+                if(isLogin) {
+                    // Check if the entered value is a valid email pattern
+                    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    if (!emailRegex.test(email)) {
+                        const enteredPhone = email;
+                        // Query Firestore to find the associated email address for that phone number
+                        const usersSnap = await db.collection('users').where('phoneNumber', '==', enteredPhone).get();
+                        if (!usersSnap.empty) {
+                            email = usersSnap.docs[0].data().email;
+                        } else {
+                            // Fallback to legacy dummy email format if no user found
+                            email = enteredPhone + "@theforexroom.com";
+                        }
+                    }
+                    await auth.signInWithEmailAndPassword(email, pass);
+                } else {
                     const res = await auth.createUserWithEmailAndPassword(email, pass);
                     let myRefCode = email.split('@')[0].toUpperCase() + Math.floor(100 + Math.random() * 900);
                     
